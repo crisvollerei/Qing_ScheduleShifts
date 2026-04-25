@@ -1,4 +1,4 @@
-# MyApp
+# Qing_ScheduleShifts
 
 > ⚠️ **免责声明**：本项目借助 AI 工具（腾讯元宝）辅助开发完成，仅供参考和学习研究使用。
 
@@ -14,6 +14,7 @@
 - 自定义头像/品牌展示
 
 ---
+ps: 这里提供纯网页版本：https://github.com/crisvollerei/crisvollerei.github.io
 
 ## 🛠️ 如何修改 App 图标
 
