@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/shift_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="今日班次"
+        android:textSize="11sp"
+        android:textColor="@color/accent"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:id="@+id/today_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2026年4月25日 星期五"
+        android:textSize="12sp"
+        android:textColor="@color/text_muted"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="6dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/shift_emoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☀️"
+            android:textSize="32sp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="2dp" />
+
+        <TextView
+            android:id="@+id/shift_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="白班"
+            android:textSize="20sp"
+            android:textColor="@color/day_color"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/shift_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="08:00 - 20:00"
+        android:textSize="12sp"
+        android:textColor="@color/text"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:id="@+id/cycle_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="本周期第 1 天"
+        android:textSize="11sp"
+        android:textColor="@color/text_muted"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:orientation="horizontal"
+        android:background="@drawable/progress_bg"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:id="@+id/progress_bar"
+            android:layout_width="0dp"
+            android:layout_weight="0.25"
+            android:layout_height="match_parent"
+            android:background="@drawable/progress_bar"
+            android:contentDescription="@null"
+            android:scaleType="fitXY" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/next_shift_bg"
+        android:padding="6dp"
+        android:layout_marginBottom="6dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="距下次白班"
+                android:textSize="9sp"
+                android:textColor="@color/text_muted" />
+
+            <TextView
+                android:id="@+id/next_day"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3天"
+                android:textSize="11sp"
+                android:textColor="@color/day_color"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="距下次夜班"
+                android:textSize="9sp"
+                android:textColor="@color/text_muted" />
+
+            <TextView
+                android:id="@+id/next_night"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2天"
+                android:textSize="11sp"
+                android:textColor="@color/night_color"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/live_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="12:00:00"
+        android:textSize="14sp"
+        android:textColor="@color/accent"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/next_shift_bg"
+        android:padding="8dp"
+        android:layout_marginBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="距离上班"
+                android:textSize="9sp"
+                android:textColor="@color/text_muted"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/countdown_work"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textSize="12sp"
+                android:textColor="@color/text" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/border"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="距离下班"
+                android:textSize="9sp"
+                android:textColor="@color/text_muted"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/countdown_off"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textSize="12sp"
+                android:textColor="@color/text" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_accent_bg"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/countdown_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="距离下班"
+            android:textSize="10sp"
+            android:textColor="@color/accent"
+            android:layout_marginBottom="2dp" />
+
+        <TextView
+            android:id="@+id/countdown_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="08:30:15"
+            android:textSize="16sp"
+            android:textColor="@color/accent"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#F0883E</color>
+    <color name="colorPrimaryDark">#D55F0A</color>
+    <color name="colorAccent">#F0883E</color>
+    <color name="bg">#0D1117</color>
+    <color name="bg_card">#161B22</color>
+    <color name="bg_cell">#21262D</color>
+    <color name="border">#30363D</color>
+    <color name="text">#E6EDF3</color>
+    <color name="text_muted">#7D8590</color>
+    <color name="accent">#F0883E</color>
+    <color name="day_color">#58A6FF</color>
+    <color name="night_color">#A371F7</color>
+    <color name="rest_color">#3FB950</color>
+    <color name="today_bg">#F0883E08</color>
+    <color name="today_border">#F0883E</color>
+    <color name="accent_transparent">#1AF0883E</color>
+</resources>
