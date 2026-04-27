@@ -199,7 +199,7 @@
       font-weight: 700;
       color: white;
       background: var(--avatar-bg);    
-      z-index: 1;                      
+      z-index: 1;                       
       border-radius: 50%;
     }
     .badge-text {
@@ -565,6 +565,37 @@
       font-weight: bold;
     }
 
+    /* ===== Lunar Date ===== */
+    .lunar-date {
+      font-size: 9px;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+
+    .lunar-date.solar-term {
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    /* ===== Holiday Badge ===== */
+    .holiday-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+      color: white;
+      font-size: 7px;
+      padding: 1px 4px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    /* ===== Solar Term Icon ===== */
+    .solar-term-icon {
+      font-size: 10px;
+      margin-right: 1px;
+    }
+
     /* ===== Detail Panel ===== */
     .detail-panel {
       background: var(--bg-card);
@@ -798,6 +829,24 @@
       body { padding: 40px 20px 120px; }
       .calendar, .today-card { max-width: 440px; margin: 0 auto 32px; }
     }
+
+    @media (max-width: 360px) {
+      .lunar-date { font-size: 8px; }
+      .holiday-badge { font-size: 6px; padding: 1px 3px; }
+      .day-cell { min-height: 40px; }
+    }
+
+    @media (min-width: 768px) {
+      .calendar, .today-card { max-width: 520px; }
+      .day-cell { min-height: 52px; }
+      .lunar-date { font-size: 10px; }
+    }
+
+    @media (min-width: 1024px) {
+      .calendar, .today-card { max-width: 600px; }
+      .day-cell { min-height: 60px; }
+      .lunar-date { font-size: 11px; }
+    }
   </style>
 </head>
 <body>
@@ -935,13 +984,349 @@
     let CYCLE = JSON.parse(localStorage.getItem('qingzheng-cycle')) || ['白班', '夜班', '休息', '白班', '夜班', '休息', '休息', '休息'];
     let ANCHOR_DATE = new Date(localStorage.getItem('qingzheng-anchor') || '2026-04-18');
 
-    // Festival data
-    const FESTIVALS = {
+    // ===== 中国法定节假日数据 (2025-2030) =====
+    const HOLIDAYS = {
+      // 2025年
+      '2025-01-01': '元旦',
+      '2025-01-28': '除夕',
+      '2025-01-29': '春节',
+      '2025-01-30': '春节',
+      '2025-01-31': '春节',
+      '2025-02-01': '春节',
+      '2025-02-02': '春节',
+      '2025-02-03': '春节',
+      '2025-04-04': '清明',
+      '2025-05-01': '劳动节',
+      '2025-05-02': '劳动节',
+      '2025-05-03': '劳动节',
+      '2025-05-04': '劳动节',
+      '2025-05-05': '劳动节',
+      '2025-05-31': '端午',
+      '2025-06-01': '端午',
+      '2025-06-02': '端午',
+      '2025-10-01': '国庆',
+      '2025-10-02': '国庆',
+      '2025-10-03': '国庆',
+      '2025-10-04': '国庆',
+      '2025-10-05': '国庆',
+      '2025-10-06': '国庆',
+      '2025-10-07': '国庆',
+      '2025-10-08': '中秋',
+      
+      // 2026年
       '2026-01-01': '元旦',
+      '2026-02-16': '除夕',
       '2026-02-17': '春节',
+      '2026-02-18': '春节',
+      '2026-02-19': '春节',
+      '2026-02-20': '春节',
+      '2026-02-21': '春节',
+      '2026-02-22': '春节',
+      '2026-04-05': '清明',
       '2026-05-01': '劳动节',
-      '2026-10-01': '国庆节'
+      '2026-05-02': '劳动节',
+      '2026-05-03': '劳动节',
+      '2026-05-04': '劳动节',
+      '2026-05-05': '劳动节',
+      '2026-06-19': '端午',
+      '2026-06-20': '端午',
+      '2026-06-21': '端午',
+      '2026-09-25': '中秋',
+      '2026-10-01': '国庆',
+      '2026-10-02': '国庆',
+      '2026-10-03': '国庆',
+      '2026-10-04': '国庆',
+      '2026-10-05': '国庆',
+      '2026-10-06': '国庆',
+      '2026-10-07': '国庆',
+      
+      // 2027年
+      '2027-01-01': '元旦',
+      '2027-02-05': '除夕',
+      '2027-02-06': '春节',
+      '2027-02-07': '春节',
+      '2027-02-08': '春节',
+      '2027-02-09': '春节',
+      '2027-02-10': '春节',
+      '2027-02-11': '春节',
+      '2027-02-12': '春节',
+      '2027-04-05': '清明',
+      '2027-05-01': '劳动节',
+      '2027-05-02': '劳动节',
+      '2027-05-03': '劳动节',
+      '2027-05-04': '劳动节',
+      '2027-05-05': '劳动节',
+      '2027-06-09': '端午',
+      '2027-09-15': '中秋',
+      '2027-10-01': '国庆',
+      '2027-10-02': '国庆',
+      '2027-10-03': '国庆',
+      '2027-10-04': '国庆',
+      '2027-10-05': '国庆',
+      '2027-10-06': '国庆',
+      '2027-10-07': '国庆',
+
+      // 2028年
+      '2028-01-01': '元旦',
+      '2028-01-25': '除夕',
+      '2028-01-26': '春节',
+      '2028-01-27': '春节',
+      '2028-01-28': '春节',
+      '2028-01-29': '春节',
+      '2028-01-30': '春节',
+      '2028-01-31': '春节',
+      '2028-04-04': '清明',
+      '2028-05-01': '劳动节',
+      '2028-05-02': '劳动节',
+      '2028-05-03': '劳动节',
+      '2028-05-04': '劳动节',
+      '2028-05-05': '劳动节',
+      '2028-05-28': '端午',
+      '2028-10-01': '国庆',
+      '2028-10-02': '国庆',
+      '2028-10-03': '中秋国庆',
+      '2028-10-04': '国庆',
+      '2028-10-05': '国庆',
+      '2028-10-06': '国庆',
+      '2028-10-07': '国庆',
+
+      // 2029年
+      '2029-01-01': '元旦',
+      '2029-02-12': '除夕',
+      '2029-02-13': '春节',
+      '2029-02-14': '春节',
+      '2029-02-15': '春节',
+      '2029-02-16': '春节',
+      '2029-02-17': '春节',
+      '2029-02-18': '春节',
+      '2029-02-19': '春节',
+      '2029-04-04': '清明',
+      '2029-05-01': '劳动节',
+      '2029-05-02': '劳动节',
+      '2029-05-03': '劳动节',
+      '2029-05-04': '劳动节',
+      '2029-05-05': '劳动节',
+      '2029-06-16': '端午',
+      '2029-09-22': '中秋',
+      '2029-10-01': '国庆',
+      '2029-10-02': '国庆',
+      '2029-10-03': '国庆',
+      '2029-10-04': '国庆',
+      '2029-10-05': '国庆',
+      '2029-10-06': '国庆',
+      '2029-10-07': '国庆',
+
+      // 2030年
+      '2030-01-01': '元旦',
+      '2030-02-02': '除夕',
+      '2030-02-03': '春节',
+      '2030-02-04': '春节',
+      '2030-02-05': '春节',
+      '2030-02-06': '春节',
+      '2030-02-07': '春节',
+      '2030-02-08': '春节',
+      '2030-02-09': '春节',
+      '2030-04-05': '清明',
+      '2030-05-01': '劳动节',
+      '2030-05-02': '劳动节',
+      '2030-05-03': '劳动节',
+      '2030-05-04': '劳动节',
+      '2030-05-05': '劳动节',
+      '2030-06-05': '端午',
+      '2030-09-12': '中秋',
+      '2030-10-01': '国庆',
+      '2030-10-02': '国庆',
+      '2030-10-03': '国庆',
+      '2030-10-04': '国庆',
+      '2030-10-05': '国庆',
+      '2030-10-06': '国庆',
+      '2030-10-07': '国庆'
     };
+
+    // ===== 二十四节气数据 =====
+    const SOLAR_TERMS = [
+      '小寒', '大寒', '立春', '雨水', '惊蛰', '春分',
+      '清明', '谷雨', '立夏', '小满', '芒种', '夏至',
+      '小暑', '大暑', '立秋', '处暑', '白露', '秋分',
+      '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
+    ];
+
+    const SOLAR_TERM_INFO = {
+      '小寒': { icon: '❄️', month: 1 }, '大寒': { icon: '🧊', month: 1 },
+      '立春': { icon: '🌱', month: 2 }, '雨水': { icon: '🌧️', month: 2 },
+      '惊蛰': { icon: '⚡', month: 3 }, '春分': { icon: '🌸', month: 3 },
+      '清明': { icon: '🌿', month: 4 }, '谷雨': { icon: '🌾', month: 4 },
+      '立夏': { icon: '☀️', month: 5 }, '小满': { icon: '🌾', month: 5 },
+      '芒种': { icon: '🌾', month: 6 }, '夏至': { icon: '🌞', month: 6 },
+      '小暑': { icon: '🌡️', month: 7 }, '大暑': { icon: '🔥', month: 7 },
+      '立秋': { icon: '🍂', month: 8 }, '处暑': { icon: '🌅', month: 8 },
+      '白露': { icon: '💧', month: 9 }, '秋分': { icon: '🍁', month: 9 },
+      '寒露': { icon: '🌙', month: 10 }, '霜降': { icon: '🍂', month: 10 },
+      '立冬': { icon: '❄️', month: 11 }, '小雪': { icon: '🌨️', month: 11 },
+      '大雪': { icon: '❄️', month: 12 }, '冬至': { icon: '⛄', month: 12 }
+    };
+
+    // 二十四节气日期计算 (简化版，基于1900-2100年数据)
+    const SOLAR_TERM_DATES = {
+      2025: ['01-05','01-20','02-03','02-18','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-23','10-08','10-23','11-07','11-22','12-07','12-21'],
+      2026: ['01-05','01-20','02-04','02-18','03-06','03-21','04-05','04-20','05-05','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-22','12-07','12-22'],
+      2027: ['01-05','01-20','02-04','02-19','03-06','03-21','04-05','04-20','05-06','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-23','12-07','12-22'],
+      2028: ['01-06','01-21','02-04','02-19','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-22','10-08','10-23','11-07','11-22','12-07','12-21'],
+      2029: ['01-05','01-20','02-03','02-18','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-23','10-08','10-23','11-07','11-22','12-07','12-21'],
+      2030: ['01-05','01-20','02-04','02-18','03-06','03-21','04-05','04-20','05-05','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-22','12-07','12-22']
+    };
+
+    // ===== 农历转换数据 =====
+    const LUNAR_INFO = [
+      0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+      0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+      0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+      0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+      0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+      0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,
+      0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+      0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,
+      0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+      0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+      0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+      0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+      0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+      0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+      0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
+    ];
+
+    const Gan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+    const Zhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    const Animals = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+    const LunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+    const LunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+                      '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+                      '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+
+    // 计算农历日期
+    function getLunarDate(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      
+      const baseDate = new Date(1900, 0, 31);
+      let offset = Math.floor((date - baseDate) / 86400000);
+      
+      let i, leap = 0, temp = 0;
+      let yearCyl, monCyl, dayCyl;
+      let baseYear = 1900;
+      let baseMonth = 1;
+      let baseDay = 31;
+      
+      for (i = baseYear; i < 2101 && offset > 0; i++) {
+        temp = lYearDays(i);
+        offset -= temp;
+      }
+      if (offset < 0) {
+        offset += temp;
+        i--;
+      }
+      
+      const lunarYear = i;
+      yearCyl = i - 1900 + 36;
+      
+      leap = leapMonth(i);
+      let isLeap = false;
+      
+      for (i = 1; i < 13 && offset > 0; i++) {
+        if (leap > 0 && i === (leap + 1) && isLeap === false) {
+          --i;
+          isLeap = true;
+          temp = leapDays(lunarYear);
+        } else {
+          temp = monthDays(lunarYear, i);
+        }
+        
+        if (isLeap === true && i === (leap + 1)) isLeap = false;
+        offset -= temp;
+      }
+      
+      if (offset === 0 && leap > 0 && i === leap + 1) {
+        if (isLeap) {
+          isLeap = false;
+        } else {
+          isLeap = true;
+          --i;
+        }
+      }
+      
+      if (offset < 0) {
+        offset += temp;
+        --i;
+      }
+      
+      const lunarMonth = i;
+      monCyl = (yearCyl - 1) * 12 + i + 13;
+      const lunarDay = offset + 1;
+      dayCyl = offset + 40;
+      
+      return {
+        year: lunarYear,
+        month: lunarMonth,
+        day: lunarDay,
+        isLeap: isLeap,
+        yearGanZhi: cyclical(yearCyl),
+        zodiac: Animals[(yearCyl - 4) % 12],
+        monthStr: (isLeap ? '闰' : '') + LunarMonths[lunarMonth - 1] + '月',
+        dayStr: LunarDays[lunarDay - 1]
+      };
+    }
+
+    function lYearDays(y) {
+      let i, sum = 348;
+      for (i = 0x8000; i > 0x8; i >>= 1) {
+        sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0;
+      }
+      return sum + leapDays(y);
+    }
+
+    function leapMonth(y) {
+      return LUNAR_INFO[y - 1900] & 0xf;
+    }
+
+    function leapDays(y) {
+      if (leapMonth(y)) {
+        return ((LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29);
+      } else {
+        return 0;
+      }
+    }
+
+    function monthDays(y, m) {
+      return ((LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29);
+    }
+
+    function cyclical(num) {
+      return Gan[num % 10] + Zhi[num % 12];
+    }
+
+    // 获取二十四节气
+    function getSolarTerm(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${month}-${day}`;
+      
+      // 查找对应的节气
+      const termDates = SOLAR_TERM_DATES[year] || SOLAR_TERM_DATES[2026];
+      const termIndex = termDates.indexOf(dateStr);
+      
+      if (termIndex !== -1) {
+        return SOLAR_TERMS[termIndex];
+      }
+      return null;
+    }
+
+    // 获取节假日
+    function getHoliday(date) {
+      const dateStr = formatDateISO(date);
+      return HOLIDAYS[dateStr] || null;
+    }
 
     // ===== Theme =====
     const themeToggle = document.getElementById('themeToggle');
@@ -1157,7 +1542,26 @@
         `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日 ${getWeekdayCn(today)}`;
 
       // Today card
-      document.getElementById('todayDate').textContent = formatDate(today) + ' ' + getWeekdayCn(today);
+      let todayDateInfo = formatDate(today) + ' ' + getWeekdayCn(today);
+      
+      // 添加农历信息
+      const lunar = getLunarDate(today);
+      todayDateInfo += ` 农历${lunar.monthStr}${lunar.dayStr}`;
+      
+      // 添加节气信息
+      const solarTerm = getSolarTerm(today);
+      if (solarTerm) {
+        const termInfo = SOLAR_TERM_INFO[solarTerm];
+        todayDateInfo += ` ${termInfo.icon}${solarTerm}`;
+      }
+      
+      // 添加节假日信息
+      const holiday = getHoliday(today);
+      if (holiday) {
+        todayDateInfo += ` 🎉${holiday}`;
+      }
+      
+      document.getElementById('todayDate').textContent = todayDateInfo;
       const shift = getShift(today);
       const shiftMap = { '白班': ['day','☀️'], '夜班': ['night','🌙'], '休息': ['rest','🏖️'] };
       const [cls, emoji] = shiftMap[shift];
@@ -1211,18 +1615,38 @@
           onclick: () => showDetail(date)
         });
 
-        // Add festival marker if exists
-        const dateStr = formatDateISO(date);
-        if (FESTIVALS[dateStr]) {
-          const festivalMarker = mk('div', { cls: 'festival-marker', text: FESTIVALS[dateStr].substring(0, 2) });
-          cell.appendChild(festivalMarker);
+        // Add holiday badge if exists
+        const holiday = getHoliday(date);
+        if (holiday) {
+          const holidayBadge = mk('div', { cls: 'holiday-badge', text: holiday.substring(0, 2) });
+          cell.appendChild(holidayBadge);
         }
 
         const dot = mk('div', { cls: `shift-dot ${cls}` });
         const num = mk('div', { cls: 'day-num', text: d });
+        
+        // Add lunar date
+        const lunar = getLunarDate(date);
+        const solarTerm = getSolarTerm(date);
+        
+        let lunarText = '';
+        let lunarClass = 'lunar-date';
+        
+        if (solarTerm) {
+          const termInfo = SOLAR_TERM_INFO[solarTerm];
+          lunarText = `${termInfo.icon}${solarTerm}`;
+          lunarClass = 'lunar-date solar-term';
+        } else if (lunar.day === 1) {
+          lunarText = lunar.monthStr;
+        } else {
+          lunarText = lunar.dayStr;
+        }
+        
+        const lunarEl = mk('div', { cls: lunarClass, text: lunarText });
 
         cell.appendChild(dot);
         cell.appendChild(num);
+        cell.appendChild(lunarEl);
         grid.appendChild(cell);
       }
 
@@ -1246,7 +1670,27 @@
       const emoji = { '白班': '☀️', '夜班': '🌙', '休息': '🏖️' }[s];
       const panel = document.getElementById('detailPanel');
 
-      document.getElementById('detailDate').textContent = formatDate(date) + ' ' + getWeekdayCn(date);
+      // 构建日期信息
+      let dateInfo = formatDate(date) + ' ' + getWeekdayCn(date);
+      
+      // 添加农历信息
+      const lunar = getLunarDate(date);
+      dateInfo += ` 农历${lunar.yearGanZhi}年[${lunar.zodiac}]${lunar.monthStr}${lunar.dayStr}`;
+      
+      // 添加节气信息
+      const solarTerm = getSolarTerm(date);
+      if (solarTerm) {
+        const termInfo = SOLAR_TERM_INFO[solarTerm];
+        dateInfo += ` ${termInfo.icon}${solarTerm}`;
+      }
+      
+      // 添加节假日信息
+      const holiday = getHoliday(date);
+      if (holiday) {
+        dateInfo += ` 🎉${holiday}`;
+      }
+      
+      document.getElementById('detailDate').textContent = dateInfo;
       const ds = document.getElementById('detailShift');
       ds.innerHTML = `${emoji} ${s}`;
       ds.className = `detail-shift ${cls}`;
