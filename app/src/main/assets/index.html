@@ -982,7 +982,12 @@
   <script>
     // ===== Config =====
     let CYCLE = JSON.parse(localStorage.getItem('qingzheng-cycle')) || ['白班', '夜班', '休息', '白班', '夜班', '休息', '休息', '休息'];
-    let ANCHOR_DATE = new Date(localStorage.getItem('qingzheng-anchor') || '2026-04-18');
+    // 使用本地午夜（非 UTC 午夜），避免时区偏移导致周期计算错误
+    let ANCHOR_DATE = (function() {
+      const saved = localStorage.getItem('qingzheng-anchor');
+      const parts = (saved || '2026-04-18').split('-');
+      return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    })();
 
     // ===== 中国法定节假日数据 (2025-2030) =====
     const HOLIDAYS = {
@@ -1355,7 +1360,6 @@
       viewMonth = today.getMonth();
       render();
       // 启动实时时钟更新
-      updateLiveClockAndCountdown();
       setInterval(updateLiveClockAndCountdown, 1000);
     })();
 
@@ -1393,6 +1397,38 @@
       }
     }
 
+    // 获取当前有效班次（考虑跨日夜班：夜班 20:00→次日 08:00）
+    function getEffectiveShiftInfo() {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const yesterdayShift = getShift(yesterday);
+      const today8am = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 0, 0);
+      
+      // 如果现在是 08:00 之前，且昨天是夜班，则仍在昨天的夜班中
+      if (now < today8am && yesterdayShift === '夜班') {
+        const nightStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 20, 0, 0);
+        const nightEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 0, 0);
+        return {
+          shift: '夜班',
+          isCrossDay: true,
+          start: nightStart,
+          end: nightEnd
+        };
+      }
+      
+      const todayShift = getShift(today);
+      const times = getShiftTimes(today);
+      return {
+        shift: todayShift,
+        isCrossDay: false,
+        start: times ? times.start : null,
+        end: times ? times.end : null
+      };
+    }
+
     // 格式化倒计时 (毫秒 → HH:MM:SS)
     function formatCountdown(ms) {
       if (ms <= 0) return '00:00:00';
@@ -1421,22 +1457,22 @@
 
     // 更新实时时钟和倒计时
     function updateLiveClockAndCountdown() {
+    try {
       const now = new Date();
       
       // 1. 实时时钟
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
       document.getElementById('liveClock').textContent = timeStr;
       
-      // 2. 今日班次倒计时
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const shift = getShift(today);
-      const times = getShiftTimes(today);
+      // 2. 获取有效班次信息（考虑跨日夜班）
+      const info = getEffectiveShiftInfo();
+      const shift = info.shift;
       
       const workEl = document.getElementById('countdownToWork');
       const offEl = document.getElementById('countdownToOff');
       
       if (shift === '休息') {
+        // 今日休息，显示距离下次上班的倒计时
         const nextWorkMs = getNextWorkCountdown(now);
         if (nextWorkMs !== null) {
           workEl.textContent = formatCountdown(nextWorkMs);
@@ -1447,26 +1483,52 @@
         offEl.style.fontSize = '13px';
         offEl.style.fontWeight = '400';
       } else {
-        const start = times.start;
-        const end = times.end;
+        const start = info.start;
+        const end = info.end;
         
-        // 距离上班
         if (now < start) {
+          // 还没上班：距离上班倒计时
           workEl.textContent = formatCountdown(start - now);
-        } else {
+          offEl.textContent = formatCountdown(end - now);
+        } else if (now < end) {
+          // 上班中：距离下班倒计时
           workEl.textContent = '已上班';
-        }
-        
-        // 距离下班
-        if (now < end) {
           offEl.textContent = formatCountdown(end - now);
         } else {
+          // 已下班：显示距离下次上班的倒计时（类似休息日逻辑）
+          workEl.textContent = '已下班';
           offEl.textContent = '已下班';
+          const nextWorkMs = getNextWorkCountdown(now);
+          if (nextWorkMs !== null) {
+            workEl.textContent = formatCountdown(nextWorkMs);
+          }
         }
         
         offEl.style.fontSize = '';
         offEl.style.fontWeight = '';
       }
+      
+      // 3. 检测跨日夜班状态变化，动态更新今日班次卡片显示
+      updateTodayCardDisplay(info);
+    } catch(e) { /* 静默捕获，确保 setInterval 不中断 */ }
+    }
+    
+    // 动态更新今日班次卡片的班次显示（处理跨日夜班 8:00 切换）
+    let lastEffectiveShift = null;
+    function updateTodayCardDisplay(info) {
+      const shiftKey = info.shift + (info.isCrossDay ? '_crossday' : '');
+      if (shiftKey === lastEffectiveShift) return; // 无变化则跳过
+      lastEffectiveShift = shiftKey;
+      
+      const shiftMap = { '白班': ['day','☀️'], '夜班': ['night','🌙'], '休息': ['rest','🏖️'] };
+      const [cls, emoji] = shiftMap[info.shift] || ['rest', '❓'];
+      const td = document.getElementById('todayShift');
+      td.innerHTML = `<span class="today-shift-emoji">${emoji}</span>${info.shift}`;
+      td.className = `today-shift ${cls}`;
+      
+      // 更新背景色
+      const shiftClass = info.shift === '白班' ? 'day' : info.shift === '夜班' ? 'night' : 'rest';
+      document.body.setAttribute('data-shift', shiftClass);
     }
 
     function getWeekdayCn(date) {
@@ -1524,11 +1586,10 @@
       return { nextDay: nextDayDays, nextNight: nextNightDays };
     }
 
-    // Update background based on today's shift
+    // Update background based on today's shift (考虑跨日夜班)
     function updateBackgroundShift() {
-      const today = new Date();
-      const shift = getShift(today);
-      const shiftClass = shift === '白班' ? 'day' : shift === '夜班' ? 'night' : 'rest';
+      const info = getEffectiveShiftInfo();
+      const shiftClass = info.shift === '白班' ? 'day' : info.shift === '夜班' ? 'night' : 'rest';
       document.body.setAttribute('data-shift', shiftClass);
     }
 
@@ -1562,9 +1623,11 @@
       }
       
       document.getElementById('todayDate').textContent = todayDateInfo;
-      const shift = getShift(today);
+      // 使用有效班次（考虑跨日夜班）
+      const effectiveInfo = getEffectiveShiftInfo();
+      const shift = effectiveInfo.shift;
       const shiftMap = { '白班': ['day','☀️'], '夜班': ['night','🌙'], '休息': ['rest','🏖️'] };
-      const [cls, emoji] = shiftMap[shift];
+      const [cls, emoji] = shiftMap[shift] || ['rest', '❓'];
       const td = document.getElementById('todayShift');
       td.innerHTML = `<span class="today-shift-emoji">${emoji}</span>${shift}`;
       td.className = `today-shift ${cls}`;
@@ -1605,7 +1668,7 @@
       for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(viewYear, viewMonth, d);
         const s = getShift(date);
-        const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s];
+        const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s] || ['rest'];
         const past = isPast(date) && !isToday(date);
         const todayCls = isToday(date) ? ' today' : '';
         const pastCls = past ? ' past' : '';
@@ -1666,8 +1729,8 @@
     // ===== Detail Panel =====
     function showDetail(date) {
       const s = getShift(date);
-      const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s];
-      const emoji = { '白班': '☀️', '夜班': '🌙', '休息': '🏖️' }[s];
+      const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s] || ['rest'];
+      const emoji = { '白班': '☀️', '夜班': '🌙', '休息': '🏖️' }[s] || '❓';
       const panel = document.getElementById('detailPanel');
 
       // 构建日期信息
@@ -1742,7 +1805,7 @@
     }
 
     function saveSettings() {
-      const newAnchor = new Date(document.getElementById('anchorDate').value);
+      const anchorVal = document.getElementById('anchorDate').value;
       const newCycle = document.getElementById('cyclePattern').value.split(/\s+/).filter(s => s.trim() !== '');
       
       if (newCycle.length === 0) {
@@ -1750,15 +1813,31 @@
         return;
       }
       
+      // 校验日期输入
+      if (!anchorVal) {
+        alert('请选择锚定日期！');
+        return;
+      }
+      const parts = anchorVal.split('-');
+      if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+        alert('日期格式无效！');
+        return;
+      }
+      const newAnchor = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      if (isNaN(newAnchor.getTime())) {
+        alert('无效的日期！');
+        return;
+      }
+      
       ANCHOR_DATE = newAnchor;
       CYCLE = newCycle;
       
-      localStorage.setItem('qingzheng-anchor', ANCHOR_DATE.toISOString().split('T')[0]);
+      localStorage.setItem('qingzheng-anchor', anchorVal);
       localStorage.setItem('qingzheng-cycle', JSON.stringify(CYCLE));
       
       // 同步到原生存储
       if (typeof Android !== 'undefined') {
-        Android.saveSettings(JSON.stringify(CYCLE), ANCHOR_DATE.toISOString().split('T')[0]);
+        Android.saveSettings(JSON.stringify(CYCLE), anchorVal);
       }
       
       closeSettings();
