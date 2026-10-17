@@ -1,11 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MyApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!--
+      与网页内核一致：页面自带完整头部与品牌区，因此不显示原生 ActionBar，
+      WebView 占满整个窗口；窗口底色跟随银昼 / 蓝夜主题，避免加载时闪白。
+    -->
+    <style name="Theme.MyApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorSecondary">@color/colorAccent</item>
         <item name="android:colorBackground">@color/bg</item>
+        <item name="android:windowBackground">@color/bg</item>
         <item name="android:textColorPrimary">@color/text</item>
         <item name="android:textColorSecondary">@color/text_muted</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+    </style>
+    <style name="WidgetText" parent="@android:style/Widget.TextView">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/widget_ink</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+    <style name="WidgetLabel" parent="WidgetText">
+        <item name="android:textColor">@color/widget_muted</item>
+        <item name="android:textSize">10sp</item>
+    </style>
+    <style name="WidgetTimer" parent="WidgetText">
+        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:textColor">@color/widget_accent</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:ellipsize">none</item>
     </style>
 </resources>

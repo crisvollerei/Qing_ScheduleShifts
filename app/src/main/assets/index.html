@@ -1,1769 +1,214 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>清蒸排班表</title>
-  <style>
-    /* ===== Google Fonts ===== */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
-
-    :root {
-      /* Dark Theme (Default) */
-      --bg: #0d1117;
-      --bg-card: #161b22;
-      --bg-cell: #21262d;
-      --border: #30363d;
-      --text: #e6edf3;
-      --text-muted: #7d8590;
-      --accent: #f0883e;
-      --accent-glow: rgba(240, 136, 62, 0.15);
-      --day-color: #58a6ff;
-      --night-color: #a371f7;
-      --rest-color: #3fb950;
-      --today-bg: rgba(240, 136, 62, 0.08);
-      --today-border: #f0883e;
-      --avatar-bg: linear-gradient(135deg, #f0883e, #a371f7);
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-      
-      /* Shift-based background colors */
-      --shift-bg-day: #0f172a;
-      --shift-bg-night: #1e1b4b;
-      --shift-bg-rest: #1a2e1a;
-    }
-
-    [data-theme="light"] {
-      --bg: #f6f8fa;
-      --bg-card: #ffffff;
-      --bg-cell: #f3f4f6;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --text-muted: #656d76;
-      --accent: #d55f0a;
-      --accent-glow: rgba(213, 95, 10, 0.12);
-      --day-color: #0969da;
-      --night-color: #8250df;
-      --rest-color: #1a7f37;
-      --today-bg: rgba(213, 95, 10, 0.08);
-      --today-border: #d55f0a;
-      --avatar-bg: linear-gradient(135deg, #d55f0a, #8250df);
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-      
-      /* Light theme shift backgrounds */
-      --shift-bg-day: #e0f2fe;
-      --shift-bg-night: #ede9fe;
-      --shift-bg-rest: #dcfce7;
-    }
-
-    [data-shift="day"] { background: linear-gradient(135deg, var(--shift-bg-day), var(--bg)); }
-    [data-shift="night"] { background: linear-gradient(135deg, var(--shift-bg-night), var(--bg)); }
-    [data-shift="rest"] { background: linear-gradient(135deg, var(--shift-bg-rest), var(--bg)); }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Noto Sans SC', -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 24px 16px 120px;
-      transition: background 0.3s ease, color 0.3s ease;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image:
-        radial-gradient(ellipse 80% 50% at 50% -10%, var(--accent-glow) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(88, 166, 255, 0.05) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    /* ===== Theme Toggle ===== */
-    .theme-toggle {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-      transition: all 0.2s ease;
-      z-index: 100;
-    }
-
-    .theme-toggle:hover {
-      transform: scale(1.1);
-      border-color: var(--accent);
-    }
-
-    .theme-toggle:active {
-      transform: scale(0.95);
-    }
-
-    /* ===== Back to Today Button ===== */
-    .back-to-today {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: white;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-      transition: all 0.2s ease;
-      z-index: 100;
-    }
-
-    .back-to-today:hover {
-      transform: scale(1.1);
-      background: var(--accent);
-    }
-
-    .back-to-today:active {
-      transform: scale(0.95);
-    }
-
-    /* ===== Header ===== */
-    .header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .avatar-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 6px 16px 6px 8px;
-      margin-bottom: 16px;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.3s ease;
-    }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--avatar-bg);     
-      position: relative;               
-      overflow: hidden;                 
-      flex-shrink: 0;
-      display: flex;                    
-      align-items: center;
-      justify-content: center;
-    }
-
-    .avatar img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 2;                       
-      border-radius: 50%;               
-    }
-
-    .avatar-fallback {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: white;
-      background: var(--avatar-bg);    
-      z-index: 1;                       
-      border-radius: 50%;
-    }
-    .badge-text {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 400;
-    }
-
-    .badge-text strong {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .subtitle {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    /* ===== Legend ===== */
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .legend-dot.day { background: var(--day-color); }
-    .legend-dot.night { background: var(--night-color); }
-    .legend-dot.rest { background: var(--rest-color); }
-
-    /* ===== Today Card ===== */
-    .today-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 32px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      animation: slideUp 0.6s ease-out;
-      box-shadow: var(--shadow-md);
-      transition: all 0.3s ease;
-    }
-
-    .today-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--day-color), var(--night-color), var(--rest-color));
-      border-radius: 20px 20px 0 0;
-    }
-
-    .today-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-
-    .today-date {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .today-shift {
-      font-size: 42px;
-      font-weight: 900;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .today-shift.day { color: var(--day-color); }
-    .today-shift.night { color: var(--night-color); }
-    .today-shift.rest { color: var(--rest-color); }
-
-    .today-shift-emoji {
-      font-size: 36px;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .today-cycle {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .today-cycle span {
-      color: var(--accent);
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* ===== Cycle Progress Bar ===== */
-    .cycle-progress {
-      width: 100%;
-      height: 8px;
-      background: var(--bg-cell);
-      border-radius: 4px;
-      overflow: hidden;
-      margin: 12px 0;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--day-color), var(--night-color));
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-
-    /* ===== Next Shift Info ===== */
-    .next-shift-info {
-      background: var(--bg-cell);
-      border-radius: 12px;
-      padding: 12px;
-      margin-top: 12px;
-      font-size: 13px;
-    }
-
-    .next-shift-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-
-    .next-shift-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .next-shift-day { color: var(--day-color); }
-    .next-shift-night { color: var(--night-color); }
-    .next-shift-rest { color: var(--rest-color); }
-
-    /* ===== 实时时钟与倒计时 ===== */
-    .live-clock {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--accent);
-      margin: 12px 0 8px;
-      letter-spacing: 2px;
-    }
-
-    .countdown-container {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 8px;
-      padding: 8px 0;
-      border-top: 1px dashed var(--border);
-    }
-
-    .countdown-item {
-      text-align: center;
-    }
-
-    .countdown-label {
-      display: block;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .countdown-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    /* ===== Month Nav ===== */
-    .month-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      gap: 12px;
-    }
-
-    .nav-btn {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      transition: all 0.2s;
-      flex-shrink: 0;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .nav-btn:hover {
-      background: var(--bg-cell);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .nav-btn:active {
-      transform: scale(0.95);
-    }
-
-    .nav-btn:disabled {
-      opacity: 0.3;
-      cursor: default;
-    }
-
-    .nav-btn:disabled:hover {
-      background: var(--bg-card);
-      border-color: var(--border);
-      color: var(--text);
-    }
-
-    .month-title {
-      font-size: 17px;
-      font-weight: 700;
-      text-align: center;
-      flex: 1;
-    }
-
-    /* ===== Calendar Grid ===== */
-    .calendar {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: var(--shadow-md);
-      transition: all 0.3s ease;
-    }
-
-    .weekdays {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      background: var(--bg-cell);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .weekday {
-      text-align: center;
-      padding: 10px 4px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: 0.5px;
-    }
-
-    .weekday.weekend { color: var(--night-color); }
-
-    .days-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      padding: 8px;
-      gap: 4px;
-    }
-
-    .day-cell {
-      aspect-ratio: 1;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: default;
-      transition: all 0.2s;
-      position: relative;
-      min-height: 44px;
-    }
-
-    .day-cell.empty {
-      background: transparent;
-      cursor: default;
-    }
-
-    .day-cell.past {
-      color: var(--text-muted);
-      opacity: 0.5;
-    }
-
-    .day-cell:not(.past):not(.today):not(.empty) {
-      background: var(--bg-cell);
-      cursor: pointer;
-    }
-
-    .day-cell:not(.past):not(.today):not(.empty):hover {
-      background: var(--border);
-      transform: scale(1.08);
-    }
-
-    .day-cell.today {
-      background: var(--today-bg) !important;
-      border: 1.5px solid var(--today-border);
-      box-shadow: 0 0 16px var(--accent-glow);
-      animation: pulse-border 2s ease-in-out infinite;
-    }
-
-    .day-cell .day-num {
-      line-height: 1;
-    }
-
-    .day-cell .shift-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .shift-dot.day { background: var(--day-color); }
-    .shift-dot.night { background: var(--night-color); }
-    .shift-dot.rest { background: var(--rest-color); }
-
-    .day-cell.today .day-num {
-      color: var(--accent);
-    }
-
-    /* ===== Festival Marker ===== */
-    .festival-marker {
-      position: absolute;
-      top: 2px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 8px;
-      color: var(--accent);
-      font-weight: bold;
-    }
-
-    /* ===== Lunar Date ===== */
-    .lunar-date {
-      font-size: 9px;
-      color: var(--text-muted);
-      line-height: 1;
-    }
-
-    .lunar-date.solar-term {
-      color: #ff6b6b;
-      font-weight: 600;
-    }
-
-    /* ===== Holiday Badge ===== */
-    .holiday-badge {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-      color: white;
-      font-size: 7px;
-      padding: 1px 4px;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-
-    /* ===== Solar Term Icon ===== */
-    .solar-term-icon {
-      font-size: 10px;
-      margin-right: 1px;
-    }
-
-    /* ===== Detail Panel ===== */
-    .detail-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-top: 20px;
-      display: none;
-      animation: slideUp 0.3s ease-out;
-      box-shadow: var(--shadow-md);
-    }
-
-    .detail-panel.show { display: block; }
-
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .detail-date {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .detail-close {
-      background: var(--bg-cell);
-      border: none;
-      border-radius: 8px;
-      color: var(--text-muted);
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-
-    .detail-close:hover { background: var(--border); color: var(--text); }
-
-    .detail-shift {
-      font-size: 36px;
-      font-weight: 900;
-      text-align: center;
-      padding: 16px 0;
-    }
-
-    .detail-shift.day { color: var(--day-color); }
-    .detail-shift.night { color: var(--night-color); }
-    .detail-shift.rest { color: var(--rest-color); }
-
-    .detail-cycle {
-      text-align: center;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .detail-cycle span { color: var(--accent); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-
-    /* ===== Settings Modal ===== */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal.show { display: flex; }
-
-    .modal-content {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: var(--shadow-md);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .modal-close {
-      background: var(--bg-cell);
-      border: none;
-      border-radius: 8px;
-      color: var(--text-muted);
-      width: 32px;
-      height: 32px;
-      cursor: pointer;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-
-    .modal-close:hover { background: var(--border); color: var(--text); }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 10px 12px;
-      background: var(--bg-cell);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .form-group textarea {
-      width: 100%;
-      padding: 10px 12px;
-      background: var(--bg-cell);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: none;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-    }
-
-    .btn-secondary {
-      background: var(--bg-cell);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn:hover {
-      opacity: 0.9;
-    }
-
-    /* ===== Animations ===== */
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse-border {
-      0%, 100% { box-shadow: 0 0 12px var(--accent-glow); }
-      50% { box-shadow: 0 0 22px rgba(240, 136, 62, 0.3); }
-    }
-
-    /* ===== Footer ===== */
-    .footer {
-      text-align: center;
-      margin-top: 28px;
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    .footer-hint {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: inline-block;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 12px;
-    }
-
-    .settings-btn {
-      background: var(--bg-cell);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 6px 16px;
-      color: var(--text-muted);
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .settings-btn:hover {
-      background: var(--border);
-      color: var(--text);
-    }
-
-    /* ===== Responsive ===== */
-    @media (min-width: 480px) {
-      body { padding: 40px 20px 120px; }
-      .calendar, .today-card { max-width: 440px; margin: 0 auto 32px; }
-    }
-
-    @media (max-width: 360px) {
-      .lunar-date { font-size: 8px; }
-      .holiday-badge { font-size: 6px; padding: 1px 3px; }
-      .day-cell { min-height: 40px; }
-    }
-
-    @media (min-width: 768px) {
-      .calendar, .today-card { max-width: 520px; }
-      .day-cell { min-height: 52px; }
-      .lunar-date { font-size: 10px; }
-    }
-
-    @media (min-width: 1024px) {
-      .calendar, .today-card { max-width: 600px; }
-      .day-cell { min-height: 60px; }
-      .lunar-date { font-size: 11px; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Theme Toggle -->
-  <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
-
-  <!-- Back to Today Button -->
-  <button class="back-to-today" id="backToToday" title="回到今天">📅</button>
-
-  <!-- Header -->
-  <div class="header">
-    <div class="avatar-badge">
-      <div class="avatar">
-        <img src="avatar.png" alt="清蒸" onerror="this.style.display='none'">
-        <div class="avatar-fallback">清</div>
-      </div>
-      <span class="badge-text"><strong>清蒸</strong> 的排班表</span>
-    </div>
-    <h1>清蒸排班</h1>
-    <div class="subtitle" id="subtitle"></div>
-  </div>
-
-  <!-- Legend -->
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot day"></div>白班</div>
-    <div class="legend-item"><div class="legend-dot night"></div>夜班</div>
-    <div class="legend-item"><div class="legend-dot rest"></div>休息</div>
-  </div>
-
-  <!-- Today Card -->
-  <div class="today-card">
-    <div class="today-label">今日班次</div>
-    <div class="today-date" id="todayDate"></div>
-    <div class="today-shift" id="todayShift"></div>
-    <div class="today-cycle">本周期第 <span id="todayCycle"></span> 天</div>
-    
-    <!-- Cycle Progress Bar -->
-    <div class="cycle-progress">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    
-    <!-- Next Shift Info -->
-    <div class="next-shift-info">
-      <div class="next-shift-item">
-        <span>距离下次白班:</span>
-        <span id="nextDayInfo" class="next-shift-day">-</span>
-      </div>
-      <div class="next-shift-item">
-        <span>距离下次夜班:</span>
-        <span id="nextNightInfo" class="next-shift-night">-</span>
-      </div>
-    </div>
-
-    <!-- 实时时钟 -->
-    <div class="live-clock" id="liveClock">--:--:--</div>
-
-    <!-- 上下班倒计时 -->
-    <div class="countdown-container">
-      <div class="countdown-item">
-        <span class="countdown-label">距离上班</span>
-        <span class="countdown-value" id="countdownToWork">--:--:--</span>
-      </div>
-      <div class="countdown-item">
-        <span class="countdown-label">距离下班</span>
-        <span class="countdown-value" id="countdownToOff">--:--:--</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Month Nav -->
-  <div class="month-nav">
-    <button class="nav-btn" id="prevBtn" onclick="prevMonth()">&#8592;</button>
-    <div class="month-title" id="monthTitle"></div>
-    <button class="nav-btn" id="nextBtn" onclick="nextMonth()">&#8594;</button>
-  </div>
-
-  <!-- Calendar -->
-  <div class="calendar">
-    <div class="weekdays">
-      <div class="weekday">一</div>
-      <div class="weekday">二</div>
-      <div class="weekday">三</div>
-      <div class="weekday">四</div>
-      <div class="weekday">五</div>
-      <div class="weekday weekend">六</div>
-      <div class="weekday weekend">日</div>
-    </div>
-    <div class="days-grid" id="daysGrid"></div>
-  </div>
-
-  <!-- Detail Panel -->
-  <div class="detail-panel" id="detailPanel">
-    <div class="detail-header">
-      <div class="detail-date" id="detailDate"></div>
-      <button class="detail-close" onclick="closeDetail()">✕</button>
-    </div>
-    <div class="detail-shift" id="detailShift"></div>
-    <div class="detail-cycle">本周期第 <span id="detailCycle"></span> 天</div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div class="modal" id="settingsModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title">排班设置</div>
-        <button class="modal-close" onclick="closeSettings()">✕</button>
-      </div>
-      <div class="form-group">
-        <label for="anchorDate">锚定日期</label>
-        <input type="date" id="anchorDate" value="2026-04-18">
-      </div>
-      <div class="form-group">
-        <label for="cyclePattern">周期模式 (用空格分隔)</label>
-        <textarea id="cyclePattern">白班 夜班 休息 白班 夜班 休息 休息 休息</textarea>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-secondary" onclick="closeSettings()">取消</button>
-        <button class="btn btn-primary" onclick="saveSettings()">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="footer">
-    <div class="footer-hint">
-      💡 点击任意日期可查看详情<br>
-      周期：白 夜 休 白 夜 休 休 休
-    </div>
-    <div class="settings-btn" onclick="openSettings()">⚙️ 排班设置</div>
-  </div>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="清蒸排班表：工作有节奏，生活有期待。你的个人轮班日历、班次计划和休息提醒。">
+  <meta name="theme-color" content="#f0f0f7">
+  <title>清蒸排班 · 把日子排成喜欢的样子</title>
   <script>
-    // ===== Config =====
-    let CYCLE = JSON.parse(localStorage.getItem('qingzheng-cycle')) || ['白班', '夜班', '休息', '白班', '夜班', '休息', '休息', '休息'];
-    let ANCHOR_DATE = new Date(localStorage.getItem('qingzheng-anchor') || '2026-04-18');
-
-    // ===== 中国法定节假日数据 (2025-2030) =====
-    const HOLIDAYS = {
-      // 2025年
-      '2025-01-01': '元旦',
-      '2025-01-28': '除夕',
-      '2025-01-29': '春节',
-      '2025-01-30': '春节',
-      '2025-01-31': '春节',
-      '2025-02-01': '春节',
-      '2025-02-02': '春节',
-      '2025-02-03': '春节',
-      '2025-04-04': '清明',
-      '2025-05-01': '劳动节',
-      '2025-05-02': '劳动节',
-      '2025-05-03': '劳动节',
-      '2025-05-04': '劳动节',
-      '2025-05-05': '劳动节',
-      '2025-05-31': '端午',
-      '2025-06-01': '端午',
-      '2025-06-02': '端午',
-      '2025-10-01': '国庆',
-      '2025-10-02': '国庆',
-      '2025-10-03': '国庆',
-      '2025-10-04': '国庆',
-      '2025-10-05': '国庆',
-      '2025-10-06': '国庆',
-      '2025-10-07': '国庆',
-      '2025-10-08': '中秋',
-      
-      // 2026年
-      '2026-01-01': '元旦',
-      '2026-02-16': '除夕',
-      '2026-02-17': '春节',
-      '2026-02-18': '春节',
-      '2026-02-19': '春节',
-      '2026-02-20': '春节',
-      '2026-02-21': '春节',
-      '2026-02-22': '春节',
-      '2026-04-05': '清明',
-      '2026-05-01': '劳动节',
-      '2026-05-02': '劳动节',
-      '2026-05-03': '劳动节',
-      '2026-05-04': '劳动节',
-      '2026-05-05': '劳动节',
-      '2026-06-19': '端午',
-      '2026-06-20': '端午',
-      '2026-06-21': '端午',
-      '2026-09-25': '中秋',
-      '2026-10-01': '国庆',
-      '2026-10-02': '国庆',
-      '2026-10-03': '国庆',
-      '2026-10-04': '国庆',
-      '2026-10-05': '国庆',
-      '2026-10-06': '国庆',
-      '2026-10-07': '国庆',
-      
-      // 2027年
-      '2027-01-01': '元旦',
-      '2027-02-05': '除夕',
-      '2027-02-06': '春节',
-      '2027-02-07': '春节',
-      '2027-02-08': '春节',
-      '2027-02-09': '春节',
-      '2027-02-10': '春节',
-      '2027-02-11': '春节',
-      '2027-02-12': '春节',
-      '2027-04-05': '清明',
-      '2027-05-01': '劳动节',
-      '2027-05-02': '劳动节',
-      '2027-05-03': '劳动节',
-      '2027-05-04': '劳动节',
-      '2027-05-05': '劳动节',
-      '2027-06-09': '端午',
-      '2027-09-15': '中秋',
-      '2027-10-01': '国庆',
-      '2027-10-02': '国庆',
-      '2027-10-03': '国庆',
-      '2027-10-04': '国庆',
-      '2027-10-05': '国庆',
-      '2027-10-06': '国庆',
-      '2027-10-07': '国庆',
-
-      // 2028年
-      '2028-01-01': '元旦',
-      '2028-01-25': '除夕',
-      '2028-01-26': '春节',
-      '2028-01-27': '春节',
-      '2028-01-28': '春节',
-      '2028-01-29': '春节',
-      '2028-01-30': '春节',
-      '2028-01-31': '春节',
-      '2028-04-04': '清明',
-      '2028-05-01': '劳动节',
-      '2028-05-02': '劳动节',
-      '2028-05-03': '劳动节',
-      '2028-05-04': '劳动节',
-      '2028-05-05': '劳动节',
-      '2028-05-28': '端午',
-      '2028-10-01': '国庆',
-      '2028-10-02': '国庆',
-      '2028-10-03': '中秋国庆',
-      '2028-10-04': '国庆',
-      '2028-10-05': '国庆',
-      '2028-10-06': '国庆',
-      '2028-10-07': '国庆',
-
-      // 2029年
-      '2029-01-01': '元旦',
-      '2029-02-12': '除夕',
-      '2029-02-13': '春节',
-      '2029-02-14': '春节',
-      '2029-02-15': '春节',
-      '2029-02-16': '春节',
-      '2029-02-17': '春节',
-      '2029-02-18': '春节',
-      '2029-02-19': '春节',
-      '2029-04-04': '清明',
-      '2029-05-01': '劳动节',
-      '2029-05-02': '劳动节',
-      '2029-05-03': '劳动节',
-      '2029-05-04': '劳动节',
-      '2029-05-05': '劳动节',
-      '2029-06-16': '端午',
-      '2029-09-22': '中秋',
-      '2029-10-01': '国庆',
-      '2029-10-02': '国庆',
-      '2029-10-03': '国庆',
-      '2029-10-04': '国庆',
-      '2029-10-05': '国庆',
-      '2029-10-06': '国庆',
-      '2029-10-07': '国庆',
-
-      // 2030年
-      '2030-01-01': '元旦',
-      '2030-02-02': '除夕',
-      '2030-02-03': '春节',
-      '2030-02-04': '春节',
-      '2030-02-05': '春节',
-      '2030-02-06': '春节',
-      '2030-02-07': '春节',
-      '2030-02-08': '春节',
-      '2030-02-09': '春节',
-      '2030-04-05': '清明',
-      '2030-05-01': '劳动节',
-      '2030-05-02': '劳动节',
-      '2030-05-03': '劳动节',
-      '2030-05-04': '劳动节',
-      '2030-05-05': '劳动节',
-      '2030-06-05': '端午',
-      '2030-09-12': '中秋',
-      '2030-10-01': '国庆',
-      '2030-10-02': '国庆',
-      '2030-10-03': '国庆',
-      '2030-10-04': '国庆',
-      '2030-10-05': '国庆',
-      '2030-10-06': '国庆',
-      '2030-10-07': '国庆'
-    };
-
-    // ===== 二十四节气数据 =====
-    const SOLAR_TERMS = [
-      '小寒', '大寒', '立春', '雨水', '惊蛰', '春分',
-      '清明', '谷雨', '立夏', '小满', '芒种', '夏至',
-      '小暑', '大暑', '立秋', '处暑', '白露', '秋分',
-      '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
-    ];
-
-    const SOLAR_TERM_INFO = {
-      '小寒': { icon: '❄️', month: 1 }, '大寒': { icon: '🧊', month: 1 },
-      '立春': { icon: '🌱', month: 2 }, '雨水': { icon: '🌧️', month: 2 },
-      '惊蛰': { icon: '⚡', month: 3 }, '春分': { icon: '🌸', month: 3 },
-      '清明': { icon: '🌿', month: 4 }, '谷雨': { icon: '🌾', month: 4 },
-      '立夏': { icon: '☀️', month: 5 }, '小满': { icon: '🌾', month: 5 },
-      '芒种': { icon: '🌾', month: 6 }, '夏至': { icon: '🌞', month: 6 },
-      '小暑': { icon: '🌡️', month: 7 }, '大暑': { icon: '🔥', month: 7 },
-      '立秋': { icon: '🍂', month: 8 }, '处暑': { icon: '🌅', month: 8 },
-      '白露': { icon: '💧', month: 9 }, '秋分': { icon: '🍁', month: 9 },
-      '寒露': { icon: '🌙', month: 10 }, '霜降': { icon: '🍂', month: 10 },
-      '立冬': { icon: '❄️', month: 11 }, '小雪': { icon: '🌨️', month: 11 },
-      '大雪': { icon: '❄️', month: 12 }, '冬至': { icon: '⛄', month: 12 }
-    };
-
-    // 二十四节气日期计算 (简化版，基于1900-2100年数据)
-    const SOLAR_TERM_DATES = {
-      2025: ['01-05','01-20','02-03','02-18','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-23','10-08','10-23','11-07','11-22','12-07','12-21'],
-      2026: ['01-05','01-20','02-04','02-18','03-06','03-21','04-05','04-20','05-05','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-22','12-07','12-22'],
-      2027: ['01-05','01-20','02-04','02-19','03-06','03-21','04-05','04-20','05-06','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-23','12-07','12-22'],
-      2028: ['01-06','01-21','02-04','02-19','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-22','10-08','10-23','11-07','11-22','12-07','12-21'],
-      2029: ['01-05','01-20','02-03','02-18','03-05','03-20','04-04','04-20','05-05','05-21','06-05','06-21','07-07','07-22','08-07','08-23','09-07','09-23','10-08','10-23','11-07','11-22','12-07','12-21'],
-      2030: ['01-05','01-20','02-04','02-18','03-06','03-21','04-05','04-20','05-05','05-21','06-06','06-21','07-07','07-23','08-08','08-23','09-08','09-23','10-08','10-24','11-08','11-22','12-07','12-22']
-    };
-
-    // ===== 农历转换数据 =====
-    const LUNAR_INFO = [
-      0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
-      0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
-      0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
-      0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
-      0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
-      0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,
-      0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
-      0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,
-      0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
-      0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
-      0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
-      0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
-      0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
-      0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
-      0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
-    ];
-
-    const Gan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
-    const Zhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
-    const Animals = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
-    const LunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
-    const LunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
-                      '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
-                      '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-
-    // 计算农历日期
-    function getLunarDate(date) {
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const day = date.getDate();
-      
-      const baseDate = new Date(1900, 0, 31);
-      let offset = Math.floor((date - baseDate) / 86400000);
-      
-      let i, leap = 0, temp = 0;
-      let yearCyl, monCyl, dayCyl;
-      let baseYear = 1900;
-      let baseMonth = 1;
-      let baseDay = 31;
-      
-      for (i = baseYear; i < 2101 && offset > 0; i++) {
-        temp = lYearDays(i);
-        offset -= temp;
-      }
-      if (offset < 0) {
-        offset += temp;
-        i--;
-      }
-      
-      const lunarYear = i;
-      yearCyl = i - 1900 + 36;
-      
-      leap = leapMonth(i);
-      let isLeap = false;
-      
-      for (i = 1; i < 13 && offset > 0; i++) {
-        if (leap > 0 && i === (leap + 1) && isLeap === false) {
-          --i;
-          isLeap = true;
-          temp = leapDays(lunarYear);
-        } else {
-          temp = monthDays(lunarYear, i);
-        }
-        
-        if (isLeap === true && i === (leap + 1)) isLeap = false;
-        offset -= temp;
-      }
-      
-      if (offset === 0 && leap > 0 && i === leap + 1) {
-        if (isLeap) {
-          isLeap = false;
-        } else {
-          isLeap = true;
-          --i;
-        }
-      }
-      
-      if (offset < 0) {
-        offset += temp;
-        --i;
-      }
-      
-      const lunarMonth = i;
-      monCyl = (yearCyl - 1) * 12 + i + 13;
-      const lunarDay = offset + 1;
-      dayCyl = offset + 40;
-      
-      return {
-        year: lunarYear,
-        month: lunarMonth,
-        day: lunarDay,
-        isLeap: isLeap,
-        yearGanZhi: cyclical(yearCyl),
-        zodiac: Animals[(yearCyl - 4) % 12],
-        monthStr: (isLeap ? '闰' : '') + LunarMonths[lunarMonth - 1] + '月',
-        dayStr: LunarDays[lunarDay - 1]
-      };
-    }
-
-    function lYearDays(y) {
-      let i, sum = 348;
-      for (i = 0x8000; i > 0x8; i >>= 1) {
-        sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0;
-      }
-      return sum + leapDays(y);
-    }
-
-    function leapMonth(y) {
-      return LUNAR_INFO[y - 1900] & 0xf;
-    }
-
-    function leapDays(y) {
-      if (leapMonth(y)) {
-        return ((LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29);
-      } else {
-        return 0;
-      }
-    }
-
-    function monthDays(y, m) {
-      return ((LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29);
-    }
-
-    function cyclical(num) {
-      return Gan[num % 10] + Zhi[num % 12];
-    }
-
-    // 获取二十四节气
-    function getSolarTerm(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${month}-${day}`;
-      
-      // 查找对应的节气
-      const termDates = SOLAR_TERM_DATES[year] || SOLAR_TERM_DATES[2026];
-      const termIndex = termDates.indexOf(dateStr);
-      
-      if (termIndex !== -1) {
-        return SOLAR_TERMS[termIndex];
-      }
-      return null;
-    }
-
-    // 获取节假日
-    function getHoliday(date) {
-      const dateStr = formatDateISO(date);
-      return HOLIDAYS[dateStr] || null;
-    }
-
-    // ===== Theme =====
-    const themeToggle = document.getElementById('themeToggle');
-    const savedTheme = localStorage.getItem('qingzheng-theme');
-    if (savedTheme) {
-      document.documentElement.setAttribute('data-theme', savedTheme);
-      themeToggle.textContent = savedTheme === 'light' ? '☀️' : '🌙';
-    }
-
-    themeToggle.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('qingzheng-theme', next);
-      themeToggle.textContent = next === 'light' ? '☀️' : '🌙';
-    });
-
-    // ===== State =====
-    let viewYear, viewMonth;
-    let selectedDate = null;
-
-    // ===== Init =====
-    (function init() {
-      const today = new Date();
-      viewYear = today.getFullYear();
-      viewMonth = today.getMonth();
-      render();
-      // 启动实时时钟更新
-      updateLiveClockAndCountdown();
-      setInterval(updateLiveClockAndCountdown, 1000);
+    // Apply the saved or time-based theme before the first paint.
+    (() => {
+      const hour = new Date().getHours();
+      const timedTheme = hour >= 7 && hour < 19 ? 'light' : 'dark';
+      try {
+        const theme = localStorage.getItem('qingzheng-theme');
+        const mode = localStorage.getItem('qingzheng-theme-mode');
+        document.documentElement.dataset.theme = mode === 'auto' || !['light','dark'].includes(theme) ? timedTheme : theme;
+      } catch (_) { document.documentElement.dataset.theme = timedTheme; }
     })();
-
-    function getCycleIndex(date) {
-      const diff = Math.round((date - ANCHOR_DATE) / (1000 * 60 * 60 * 24));
-      return ((diff % CYCLE.length) + CYCLE.length) % CYCLE.length;
-    }
-
-    function getShift(date) {
-      return CYCLE[getCycleIndex(date)];
-    }
-
-    // ===== 班次时间计算 (白班 8:00-20:00 / 夜班 20:00-次日8:00) =====
-    function getShiftTimes(date) {
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const day = date.getDate();
-      
-      // 白班：当日 8:00 - 20:00
-      const dayStart = new Date(year, month, day, 8, 0, 0);
-      const dayEnd = new Date(year, month, day, 20, 0, 0);
-      
-      // 夜班：当日 20:00 - 次日 8:00
-      const nightStart = new Date(year, month, day, 20, 0, 0);
-      const nightEnd = new Date(year, month, day + 1, 8, 0, 0);
-      
-      const shift = getShift(date);
-      
-      if (shift === '白班') {
-        return { start: dayStart, end: dayEnd };
-      } else if (shift === '夜班') {
-        return { start: nightStart, end: nightEnd };
-      } else {
-        return null; // 休息
-      }
-    }
-
-    // 格式化倒计时 (毫秒 → HH:MM:SS)
-    function formatCountdown(ms) {
-      if (ms <= 0) return '00:00:00';
-      const totalSeconds = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-
-    // 计算距离下一个班次上班的时间（用于休息日）
-    function getNextWorkCountdown(now) {
-      for (let i = 0; i < 14; i++) {
-        const checkDate = new Date(now);
-        checkDate.setDate(checkDate.getDate() + i);
-        const shift = getShift(checkDate);
-        if (shift !== '休息') {
-          const times = getShiftTimes(checkDate);
-          if (times && times.start > now) {
-            return times.start - now;
-          }
-        }
-      }
-      return null;
-    }
-
-    // 更新实时时钟和倒计时
-    function updateLiveClockAndCountdown() {
-      const now = new Date();
-      
-      // 1. 实时时钟
-      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-      document.getElementById('liveClock').textContent = timeStr;
-      
-      // 2. 今日班次倒计时
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const shift = getShift(today);
-      const times = getShiftTimes(today);
-      
-      const workEl = document.getElementById('countdownToWork');
-      const offEl = document.getElementById('countdownToOff');
-      
-      if (shift === '休息') {
-        const nextWorkMs = getNextWorkCountdown(now);
-        if (nextWorkMs !== null) {
-          workEl.textContent = formatCountdown(nextWorkMs);
-        } else {
-          workEl.textContent = '--:--:--';
-        }
-        offEl.textContent = '今日休息';
-        offEl.style.fontSize = '13px';
-        offEl.style.fontWeight = '400';
-      } else {
-        const start = times.start;
-        const end = times.end;
-        
-        // 距离上班
-        if (now < start) {
-          workEl.textContent = formatCountdown(start - now);
-        } else {
-          workEl.textContent = '已上班';
-        }
-        
-        // 距离下班
-        if (now < end) {
-          offEl.textContent = formatCountdown(end - now);
-        } else {
-          offEl.textContent = '已下班';
-        }
-        
-        offEl.style.fontSize = '';
-        offEl.style.fontWeight = '';
-      }
-    }
-
-    function getWeekdayCn(date) {
-      return ['周日','周一','周二','周三','周四','周五','周六'][date.getDay()];
-    }
-
-    function formatDate(date) {
-      return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
-    }
-
-    function formatDateISO(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function isSameDay(a, b) {
-      return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
-    }
-
-    function isToday(date) {
-      return isSameDay(date, new Date());
-    }
-
-    function isPast(date) {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      return date < today;
-    }
-
-    // Calculate next shifts
-    function calculateNextShifts() {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      
-      let nextDayDays = -1;
-      let nextNightDays = -1;
-      
-      for (let i = 1; i <= 30; i++) {
-        const futureDate = new Date(today);
-        futureDate.setDate(futureDate.getDate() + i);
-        
-        if (nextDayDays === -1 && getShift(futureDate) === '白班') {
-          nextDayDays = i;
-        }
-        
-        if (nextNightDays === -1 && getShift(futureDate) === '夜班') {
-          nextNightDays = i;
-        }
-        
-        if (nextDayDays !== -1 && nextNightDays !== -1) break;
-      }
-      
-      return { nextDay: nextDayDays, nextNight: nextNightDays };
-    }
-
-    // Update background based on today's shift
-    function updateBackgroundShift() {
-      const today = new Date();
-      const shift = getShift(today);
-      const shiftClass = shift === '白班' ? 'day' : shift === '夜班' ? 'night' : 'rest';
-      document.body.setAttribute('data-shift', shiftClass);
-    }
-
-    // ===== Render =====
-    function render() {
-      const today = new Date();
-      updateBackgroundShift();
-
-      // Subtitle
-      document.getElementById('subtitle').textContent =
-        `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日 ${getWeekdayCn(today)}`;
-
-      // Today card
-      let todayDateInfo = formatDate(today) + ' ' + getWeekdayCn(today);
-      
-      // 添加农历信息
-      const lunar = getLunarDate(today);
-      todayDateInfo += ` 农历${lunar.monthStr}${lunar.dayStr}`;
-      
-      // 添加节气信息
-      const solarTerm = getSolarTerm(today);
-      if (solarTerm) {
-        const termInfo = SOLAR_TERM_INFO[solarTerm];
-        todayDateInfo += ` ${termInfo.icon}${solarTerm}`;
-      }
-      
-      // 添加节假日信息
-      const holiday = getHoliday(today);
-      if (holiday) {
-        todayDateInfo += ` 🎉${holiday}`;
-      }
-      
-      document.getElementById('todayDate').textContent = todayDateInfo;
-      const shift = getShift(today);
-      const shiftMap = { '白班': ['day','☀️'], '夜班': ['night','🌙'], '休息': ['rest','🏖️'] };
-      const [cls, emoji] = shiftMap[shift];
-      const td = document.getElementById('todayShift');
-      td.innerHTML = `<span class="today-shift-emoji">${emoji}</span>${shift}`;
-      td.className = `today-shift ${cls}`;
-      document.getElementById('todayCycle').textContent = getCycleIndex(today) + 1;
-      
-      // Progress bar
-      const progress = (getCycleIndex(today) + 1) / CYCLE.length * 100;
-      document.getElementById('progressBar').style.width = `${progress}%`;
-
-      // Next shift info
-      const nextShifts = calculateNextShifts();
-      document.getElementById('nextDayInfo').textContent = nextShifts.nextDay === -1 ? 'N/A' : `${nextShifts.nextDay}天`;
-      document.getElementById('nextNightInfo').textContent = nextShifts.nextNight === -1 ? 'N/A' : `${nextShifts.nextNight}天`;
-
-      // Month title
-      document.getElementById('monthTitle').textContent = `${viewYear}年${viewMonth+1}月`;
-
-      // Nav buttons
-      const minYear = today.getFullYear() - 1;
-      const maxYear = today.getFullYear() + 1;
-      document.getElementById('prevBtn').disabled = (viewYear === minYear && viewMonth === 0);
-      document.getElementById('nextBtn').disabled = (viewYear === maxYear && viewMonth === 11);
-
-      // Calendar
-      const grid = document.getElementById('daysGrid');
-      grid.innerHTML = '';
-
-      const firstDay = new Date(viewYear, viewMonth, 1);
-      const startDow = (firstDay.getDay() + 6) % 7;
-      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-      // Empty cells before
-      for (let i = 0; i < startDow; i++) {
-        grid.appendChild(mk('div', { cls: 'day-cell empty' }));
-      }
-
-      // Day cells
-      for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(viewYear, viewMonth, d);
-        const s = getShift(date);
-        const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s];
-        const past = isPast(date) && !isToday(date);
-        const todayCls = isToday(date) ? ' today' : '';
-        const pastCls = past ? ' past' : '';
-
-        const cell = mk('div', {
-          cls: `day-cell${todayCls}${pastCls}`,
-          onclick: () => showDetail(date)
-        });
-
-        // Add holiday badge if exists
-        const holiday = getHoliday(date);
-        if (holiday) {
-          const holidayBadge = mk('div', { cls: 'holiday-badge', text: holiday.substring(0, 2) });
-          cell.appendChild(holidayBadge);
-        }
-
-        const dot = mk('div', { cls: `shift-dot ${cls}` });
-        const num = mk('div', { cls: 'day-num', text: d });
-        
-        // Add lunar date
-        const lunar = getLunarDate(date);
-        const solarTerm = getSolarTerm(date);
-        
-        let lunarText = '';
-        let lunarClass = 'lunar-date';
-        
-        if (solarTerm) {
-          const termInfo = SOLAR_TERM_INFO[solarTerm];
-          lunarText = `${termInfo.icon}${solarTerm}`;
-          lunarClass = 'lunar-date solar-term';
-        } else if (lunar.day === 1) {
-          lunarText = lunar.monthStr;
-        } else {
-          lunarText = lunar.dayStr;
-        }
-        
-        const lunarEl = mk('div', { cls: lunarClass, text: lunarText });
-
-        cell.appendChild(dot);
-        cell.appendChild(num);
-        cell.appendChild(lunarEl);
-        grid.appendChild(cell);
-      }
-
-      // 每次渲染后刷新一次倒计时（保证切换月份后依然准确）
-      updateLiveClockAndCountdown();
-    }
-
-    function mk(tag, opts) {
-      const el = document.createElement(tag);
-      if (opts.cls) el.className = opts.cls;
-      if (opts.text) el.textContent = opts.text;
-      if (opts.onclick) el.onclick = opts.onclick;
-      if (opts.html) el.innerHTML = opts.html;
-      return el;
-    }
-
-    // ===== Detail Panel =====
-    function showDetail(date) {
-      const s = getShift(date);
-      const [cls] = { '白班': ['day'], '夜班': ['night'], '休息': ['rest'] }[s];
-      const emoji = { '白班': '☀️', '夜班': '🌙', '休息': '🏖️' }[s];
-      const panel = document.getElementById('detailPanel');
-
-      // 构建日期信息
-      let dateInfo = formatDate(date) + ' ' + getWeekdayCn(date);
-      
-      // 添加农历信息
-      const lunar = getLunarDate(date);
-      dateInfo += ` 农历${lunar.yearGanZhi}年[${lunar.zodiac}]${lunar.monthStr}${lunar.dayStr}`;
-      
-      // 添加节气信息
-      const solarTerm = getSolarTerm(date);
-      if (solarTerm) {
-        const termInfo = SOLAR_TERM_INFO[solarTerm];
-        dateInfo += ` ${termInfo.icon}${solarTerm}`;
-      }
-      
-      // 添加节假日信息
-      const holiday = getHoliday(date);
-      if (holiday) {
-        dateInfo += ` 🎉${holiday}`;
-      }
-      
-      document.getElementById('detailDate').textContent = dateInfo;
-      const ds = document.getElementById('detailShift');
-      ds.innerHTML = `${emoji} ${s}`;
-      ds.className = `detail-shift ${cls}`;
-      document.getElementById('detailCycle').textContent = getCycleIndex(date) + 1;
-
-      panel.classList.add('show');
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      selectedDate = date;
-    }
-
-    function closeDetail() {
-      document.getElementById('detailPanel').classList.remove('show');
-      selectedDate = null;
-    }
-
-    // ===== Month Navigation =====
-    function prevMonth() {
-      if (viewMonth === 0) { viewYear--; viewMonth = 11; }
-      else viewMonth--;
-      closeDetail();
-      render();
-    }
-
-    function nextMonth() {
-      if (viewMonth === 11) { viewYear++; viewMonth = 0; }
-      else viewMonth++;
-      closeDetail();
-      render();
-    }
-
-    // ===== Back to Today =====
-    document.getElementById('backToToday').addEventListener('click', () => {
-      const today = new Date();
-      viewYear = today.getFullYear();
-      viewMonth = today.getMonth();
-      closeDetail();
-      render();
-    });
-
-    // ===== Settings =====
-    function openSettings() {
-      document.getElementById('settingsModal').classList.add('show');
-      document.getElementById('anchorDate').value = formatDateISO(ANCHOR_DATE);
-      document.getElementById('cyclePattern').value = CYCLE.join(' ');
-    }
-
-    function closeSettings() {
-      document.getElementById('settingsModal').classList.remove('show');
-    }
-
-    function saveSettings() {
-      const newAnchor = new Date(document.getElementById('anchorDate').value);
-      const newCycle = document.getElementById('cyclePattern').value.split(/\s+/).filter(s => s.trim() !== '');
-      
-      if (newCycle.length === 0) {
-        alert('周期模式不能为空！');
-        return;
-      }
-      
-      ANCHOR_DATE = newAnchor;
-      CYCLE = newCycle;
-      
-      localStorage.setItem('qingzheng-anchor', ANCHOR_DATE.toISOString().split('T')[0]);
-      localStorage.setItem('qingzheng-cycle', JSON.stringify(CYCLE));
-      
-      // 同步到原生存储
-      if (typeof Android !== 'undefined') {
-        Android.saveSettings(JSON.stringify(CYCLE), ANCHOR_DATE.toISOString().split('T')[0]);
-      }
-      
-      closeSettings();
-      render();
-    }
   </script>
-</body>
-</html>
+  <link rel="icon" href="avatar.png">
+  <link rel="stylesheet" href="assets/styles.css"><link rel="stylesheet" href="assets/themes.css"><link rel="stylesheet" href="assets/festivals.css">
+  <script src="assets/schedule-core.js" defer=""></script>
+  <script src="assets/calendar-data.js" defer=""></script>
+  <script src="assets/app.js" defer=""></script>
+</head>
+<body><div class="world-ornaments" aria-hidden="true"><svg class="world-wing ornament-day" viewBox="0 0 300 120" focusable="false"><use href="#silver-wings"></use></svg><svg class="world-tide ornament-night" viewBox="0 0 640 100" preserveAspectRatio="none" focusable="false"><use href="#night-tide"></use></svg><svg class="world-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div><svg class="theme-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="silver-knot" viewBox="0 0 64 64">
+      <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M32 21C11-2 1 22 23 32C1 44 15 64 32 43C49 64 64 44 42 32C64 20 52-1 32 21Z"></path>
+        <path d="M32 27C18 8 9 22 28 32C9 42 20 55 32 37C44 55 56 42 37 32C56 22 45 8 32 27Z"></path>
+        <path d="m32 22 10 10-10 10-10-10Z"></path><path d="m32 27 5 5-5 5-5-5Z"></path>
+        <path d="M32 3V0m0 64v-3M3 32H0m64 0h-3"></path>
+      </g>
+    </symbol>
+    <symbol id="silver-wings" viewBox="0 0 300 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M143 81C108 53 80 25 20 5C35 39 26 69 3 104C31 78 54 72 69 111C82 78 105 75 123 105L143 81Z"></path>
+        <path d="M143 81L20 5m123 76L39 48m104 33L69 111m74-30-20 24M157 81C192 53 220 25 280 5C265 39 274 69 297 104C269 78 246 72 231 111C218 78 195 75 177 105L157 81Z"></path>
+        <path d="m157 81 123-76M157 81l104-33M157 81l74 30m-74-30 20 24m-27-40 13 16-13 16-13-16Z"></path>
+        <path d="M150 97v12m-4 0 4 7 4-7-4-6Z"></path>
+      </g>
+    </symbol>
+    <symbol id="silver-pendant" viewBox="0 0 40 64">
+      <g fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="20" cy="8" r="4"></circle><path d="M20 12v15m0 0 11 16-11 16L9 43Z"></path><path d="m20 33 6 10-6 10-6-10Z"></path></g>
+    </symbol>
+    <symbol id="night-bow" viewBox="0 0 100 64">
+      <g fill="currentColor" fill-opacity=".08" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M44 23C29 5 7 5 6 20C4 39 24 42 44 31ZM56 23C71 5 93 5 94 20C96 39 76 42 56 31Z"></path>
+        <path d="m44 31-21 24 13-2 6 9 8-27m6-4 21 24-13-2-6 9-8-27"></path>
+        <path d="M44 23q6-5 12 0v11q-6 4-12 0Z"></path>
+        <path d="M13 21c9-2 18 0 28 6m46-6c-9-2-18 0-28 6M33 48l10-12m24 12L57 36" fill="none"></path>
+      </g>
+    </symbol>
+    <symbol id="night-tail" viewBox="0 0 64 64">
+      <path d="M32 40C29 22 17 11 3 13C3 28 15 40 29 42C27 50 25 54 22 59C31 55 35 51 36 43C50 42 61 28 61 13C47 11 35 23 32 40Z" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path>
+      <path d="M8 18q14 10 22 23m26-23Q42 30 35 42" fill="none" stroke="currentColor" stroke-width=".8"></path>
+    </symbol>
+    <symbol id="night-tide" viewBox="0 0 640 100">
+      <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+        <path d="M-20 54C72 2 123 95 214 53S356 7 442 51S560 95 660 39M-20 70C72 18 123 111 214 69S356 23 442 67S560 111 660 55M-20 86C72 34 123 127 214 85S356 39 442 83S560 127 660 71"></path>
+        <path d="M-20 41C68-4 132 69 212 41S355-2 442 35S560 67 660 26" opacity=".4"></path>
+        <circle cx="104" cy="32" r="3"></circle><circle cx="367" cy="31" r="2"></circle><circle cx="535" cy="56" r="3"></circle>
+      </g>
+    </symbol>
+    <symbol id="night-cameo" viewBox="0 0 80 80">
+      <g fill="none" stroke="currentColor" stroke-width="1.1">
+        <ellipse cx="40" cy="40" rx="23" ry="31"></ellipse><ellipse cx="40" cy="40" rx="27" ry="35" stroke-dasharray="1 4" stroke-linecap="round"></ellipse>
+        <path d="M31 13 40 1l9 12M31 67l9 12 9-12m-36-37-7 10 7 10m54-20 7 10-7 10"></path>
+      </g>
+    </symbol>
+    <symbol id="festival-new-year" viewBox="0 0 80 80">
+      <g stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8">
+        <path d="M21 59 31 27l22 22Z" fill="#e4b77c" stroke="#b88153"/><path d="m28 35 17 17m-20-8 10 11" stroke="#fff0ce"/>
+        <path d="M38 27c-3-11 9-10 6-20m7 31c8 2 7-12 19-9M47 23l9-11M57 44l13 6" fill="none" stroke="#ce7b78"/>
+        <path d="m61 10 2 6 6 2-6 2-2 6-2-6-6-2Zm-43 7 2 5 5 2-5 2-2 5-2-5-5-2Z" fill="#e3be72" stroke="#c19b59"/>
+        <circle cx="59" cy="58" r="3" fill="#b5cdbb" stroke="#7ea18d"/><path d="m13 45 3-3m47-8 3-2" stroke="#8da7b6"/>
+      </g>
+    </symbol>
+    <symbol id="festival-spring" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M38 7v10m-7 0h14m-12 44h10m-5 1v12m-5-2v-7m10 7v-7" stroke="#b88c50"/>
+        <path d="M21 23q17-12 34 0q10 17 0 32q-17 12-34 0q-10-16 0-32Z" fill="#d78882" stroke="#b66566"/>
+        <ellipse cx="38" cy="39" rx="11" ry="22" fill="#efb1a0" stroke="#c37a72"/><path d="M17 29h42M17 49h42M38 18v42" stroke="#f1cf9a"/>
+        <path d="m38 29 9 10-9 10-9-10Z" fill="#f5d99c" stroke="#c1985e"/>
+        <path d="M56 68 68 31m-7 24 10-2m-8-8-6-5" fill="none" stroke="#8eaa94"/>
+        <g fill="#efd5da" stroke="#bd8d9c"><circle cx="66" cy="33" r="5"/><circle cx="72" cy="38" r="4"/><circle cx="62" cy="40" r="4"/></g>
+        <circle cx="67" cy="38" r="2" fill="#d6ad66" stroke="none"/>
+      </g>
+    </symbol>
+    <symbol id="festival-eve" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="39" cy="59" rx="31" ry="9" fill="#e9d5bc" stroke="#bf9b7a"/><ellipse cx="39" cy="57" rx="25" ry="5" fill="#faf1df" stroke="#d9b996"/>
+        <path d="M13 51q8-27 26-19q15 2 18 20q-22 16-44-1Z" fill="#fff0d4" stroke="#c59d74"/>
+        <path d="m16 48 5-4 3-7 6 1 5-6 6 5 7 1 1 7 6 5M20 49q15 9 29 0" fill="none" stroke="#ddb994"/>
+        <path d="M40 39q8-22 19-14q12 6 9 22q-16 5-28-8Z" fill="#f6e6c6" stroke="#c59d74"/><path d="m45 35 4-4 5-4 4 4 6 4-1 7" fill="none" stroke="#ddb994"/>
+        <path d="M26 20c-5-4 4-7 0-12m14 12c-5-4 4-7 0-12" fill="none" stroke="#c2a89d"/>
+        <path d="m63 11 2 5 5 2-5 2-2 5-2-5-5-2Z" fill="#e3b777" stroke="#c49a5e"/>
+      </g>
+    </symbol>
+    <symbol id="festival-lantern" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M26 5v9m-6 0h12m-6 33v11m-4-4v6m8-6v6" stroke="#b78d57"/>
+        <path d="M14 19q12-8 24 0q8 13 0 24q-12 8-24 0q-8-12 0-24Z" fill="#dfa09b" stroke="#b97577"/><ellipse cx="26" cy="31" rx="7" ry="17" fill="#efc4a5" stroke="#ce9a7f"/><path d="M10 23h32M10 39h32" stroke="#f6dba8"/>
+        <path d="M31 55q19-15 38 0q-2 18-19 18T31 55Z" fill="#b4ccd2" stroke="#759aa5"/><ellipse cx="50" cy="55" rx="19" ry="7" fill="#f6eedf" stroke="#92aeb7"/>
+        <g fill="#fff9ed" stroke="#c9b6a0"><circle cx="42" cy="52" r="6"/><circle cx="53" cy="49" r="6"/><circle cx="60" cy="55" r="5"/></g>
+        <path d="M50 32c-4-4 3-7 0-10m11 12c-4-4 3-7 0-10" fill="none" stroke="#bdaca2"/>
+      </g>
+    </symbol>
+    <symbol id="festival-qingming" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 13q25-7 38 13M20 14q-1 28-8 48m17-45q6 27 0 47m8-43q9 20 7 37" fill="none" stroke="#6e9b87"/>
+        <g fill="#a3c4a1" stroke="#7ea68a"><path d="M16 26q-9 3-8 12q9-2 8-12Zm-1 18q-9 4-8 13q8-3 8-13Zm14-17q-8 5-5 13q7-4 5-13Zm3 16q-7 5-4 13q7-5 4-13Zm9-11q-6 7-2 14q6-5 2-14Z"/></g>
+        <path d="m61 22 12 15-14 14-11-16Z" fill="#bad2d5" stroke="#7199a5"/><path d="m61 22-2 29m-11-16 25 2" stroke="#f3e9cb"/>
+        <path d="M59 51c12 9-9 13 1 23" fill="none" stroke="#b79b87"/><path d="m60 59 5 1-2 4m-5 4-4 2 3 3" fill="none" stroke="#ceaba1"/>
+      </g>
+    </symbol>
+    <symbol id="festival-labor" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m33 13 5-1 3 8 7 2 7-5 5 5-5 7 2 7 8 3-1 7-9 1-4 6 2 8-6 3-6-6-7-1-6 6-6-4 3-8-3-6-9-2v-7l8-2 4-6-2-8 6-3 5 5Z" fill="#a8bdc9" stroke="#738f9f"/>
+        <circle cx="37" cy="37" r="13" fill="#e8eef0" stroke="#819eab"/><circle cx="37" cy="37" r="5" fill="#b0c4cf" stroke="#819eab"/>
+        <path d="M13 73q30-7 46-43m-4 14q6 1 10-7m-16 15q7 2 13-5m-19 12q7 3 14-3m-20 8q7 4 14-1" fill="none" stroke="#b5955f"/>
+        <g fill="#e4c68d" stroke="#b5955f"><path d="M55 44q-10-4-7-12q10 4 7 12Zm-6 8q-10-2-9-11q10 3 9 11Zm-6 7q-11 0-11-8q10 0 11 8Z"/></g>
+      </g>
+    </symbol>
+    <symbol id="festival-dragon-boat" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M42 13 69 59q-26 17-54 0Z" fill="#a6c3a2" stroke="#668e75"/><path d="M42 13 37 65 15 59Z" fill="#7fa68d" stroke="#668e75"/><path d="m42 13 10 49 17-3" fill="#c2d7ab" stroke="#779c7d"/>
+        <path d="M23 45q21 6 39 0M18 54q27 8 48 0M37 49l15 2m-7-4-1 8" fill="none" stroke="#f0e5b6" stroke-width="2.3"/>
+        <path d="M17 35q-9-11-5-24q14 5 15 16M20 32l-8-20M57 25q-2-14 9-20q5 14-4 24" fill="#a8c5ad" stroke="#749c83"/>
+        <path d="m38 55-5 15 7-4 5 6 2-17" fill="none" stroke="#d7b575"/>
+      </g>
+    </symbol>
+    <symbol id="festival-moon" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="36" cy="32" r="24" fill="#f1d89d" stroke="#cfad69"/><circle cx="29" cy="24" r="7" fill="#e8c986" stroke="none"/><circle cx="47" cy="37" r="5" fill="#e8c986" stroke="none"/>
+        <path d="M20 58q-2-11 8-15q-7-17-1-19q6-2 9 16q0-23 7-20q5 2 0 22q12 1 13 12q8-4 10 2q1 8-15 10H30q-14 0-10-8Z" fill="#fff7e9" stroke="#bfaa9b"/>
+        <circle cx="43" cy="49" r="1.4" fill="#9e8b84" stroke="none"/><path d="m49 53 3 1" stroke="#d39c9c"/>
+        <path d="M10 65q-4-12 6-12q4-8 12-2q12-1 11 9q8 8-1 12q-3 8-12 3q-10 4-12-4q-7 0-4-6Z" fill="#d6aa75" stroke="#ad8056"/><circle cx="24" cy="63" r="9" fill="#e9c68e" stroke="#b58b5b"/><path d="m24 57 5 6-5 6-5-6Z" fill="none" stroke="#b58b5b"/>
+        <path d="m66 14 2 5 5 2-5 2-2 5-2-5-5-2Z" fill="#ebc77d" stroke="#c5a164"/>
+      </g>
+    </symbol>
+    <symbol id="festival-national" viewBox="0 0 80 80">
+      <g stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 68V12" stroke="#b39a71" stroke-width="2.5"/><circle cx="19" cy="10" r="3" fill="#e4c482" stroke="#b39a71"/>
+        <path d="M21 16c16-10 29 11 47 2v31c-18 9-31-12-47-2Z" fill="#ce8883" stroke="#ae6567"/>
+        <path d="m32 23 2 5 6 1-5 4 1 5-4-3-5 2 2-5-3-4 5-1Z" fill="#f4d69a" stroke="#d8b673" stroke-width=".6"/>
+        <g fill="#f4d69a" stroke="none"><circle cx="43" cy="24" r="1.5"/><circle cx="48" cy="29" r="1.5"/><circle cx="48" cy="36" r="1.5"/><circle cx="42" cy="40" r="1.5"/></g>
+        <path d="M45 69q9-10 23-8M55 64l1-10m5 8 6 9" fill="none" stroke="#b09c6b"/><path d="M52 66q-9-8-6-13q9 3 6 13Zm9-4q4-11 11-10q-1 9-11 10Z" fill="#d6c398" stroke="#b09c6b"/>
+      </g>
+    </symbol>
+    <symbol id="festival-chrysanthemum" viewBox="0 0 80 80">
+      <g stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 71 36 42m-8 18-11-5m15-4 12 2" fill="none" stroke="#83a58c"/><path d="M27 62q-16 1-15-10q12-2 15 10Zm7-10q8-12 17-6q-2 11-17 6Z" fill="#bad0aa" stroke="#83a58c"/>
+        <g fill="#e8cf98" stroke="#bf9d65">
+          <ellipse cx="37" cy="30" rx="7" ry="20"/><ellipse cx="37" cy="30" rx="7" ry="20" transform="rotate(45 37 30)"/><ellipse cx="37" cy="30" rx="7" ry="20" transform="rotate(90 37 30)"/><ellipse cx="37" cy="30" rx="7" ry="20" transform="rotate(135 37 30)"/>
+        </g>
+        <g fill="#f5e4b7" stroke="#cfb27c"><ellipse cx="37" cy="30" rx="5" ry="14" transform="rotate(22 37 30)"/><ellipse cx="37" cy="30" rx="5" ry="14" transform="rotate(67 37 30)"/><ellipse cx="37" cy="30" rx="5" ry="14" transform="rotate(112 37 30)"/><ellipse cx="37" cy="30" rx="5" ry="14" transform="rotate(157 37 30)"/></g>
+        <circle cx="37" cy="30" r="6" fill="#d2a165" stroke="#b98a53"/>
+        <path d="m45 69 13-17 15 17Z" fill="#c6cfde" stroke="#8f9eb8"/><path d="m58 52 4 17" stroke="#a8b3c8"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+  <a class="skip-link" href="#calendarSection">跳转到排班日历</a>
+  <div class="main-container">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="清蒸排班首页"><span class="avatar"><img src="avatar.png" alt="" width="40" height="40"></span><span>清蒸<span class="brand-light">排班</span><small>一份从容的日常</small></span></a>
+      <nav class="view-nav" aria-label="页面区域"><a class="view-link active" href="#calendarSection">我的日历</a><button class="view-link" onclick="openYearOverview()">年度总览 <span aria-hidden="true">↗</span></button></nav>
+      <div class="topbar-right"><div class="header-date"><span id="subtitle"></span><span class="clock-row"><span class="live-dot" aria-hidden="true"></span><time id="liveClock">--:--:--</time><span>此刻，专注当下</span></span></div><div class="theme-controls"><button class="icon-btn theme-auto" id="themeAuto" onclick="enableAutomaticTheme()" aria-label="启用昼夜自动主题" aria-pressed="true" title="跟随昼夜：07:00–19:00 银昼，其余时间蓝夜"><span aria-hidden="true">◷</span></button><button class="icon-btn" id="themeToggle" aria-label="切换为深色主题" title="切换主题"><span id="themeIcon" aria-hidden="true">☾</span></button></div></div>
+    </header>
+
+    <main>
+      <section class="workspace-intro" aria-labelledby="pageTitle">
+        <div class="intro-copy"><p class="eyebrow"><span class="theme-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><span class="theme-mood" id="themeMood">银昼</span><span class="intro-divider" aria-hidden="true"></span>工作有节奏，生活有期待</p><h1 id="pageTitle">把日子，<br><span>排成喜欢的样子。</span></h1><p class="intro-subtitle">每一次出发与休息，都值得温柔以待。</p><div class="intro-flourish" aria-hidden="true"><span></span><span class="flourish-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><span></span></div></div>
+        <div class="intro-art" aria-hidden="true"><div class="scene-signature"><span class="scene-day"><strong>银翼手札</strong><small>THE SILVER ATELIER</small></span><span class="scene-night"><strong>深蓝夜航</strong><small>A TIDAL NOCTURNE</small></span></div><span class="scene-orbit"></span><span class="scene-particle particle-one"></span><span class="scene-particle particle-two"></span><span class="scene-particle particle-three"></span><span class="art-halo"></span><svg class="hero-wing ornament-day" viewBox="0 0 300 120" focusable="false"><use href="#silver-wings"></use></svg><svg class="hero-cameo ornament-night" viewBox="0 0 80 80" focusable="false"><use href="#night-cameo"></use></svg><svg class="hero-tide ornament-night" viewBox="0 0 640 100" preserveAspectRatio="none" focusable="false"><use href="#night-tide"></use></svg><span class="art-spark art-spark-one">✧</span><span class="art-spark art-spark-two">✦</span><img class="character character-day" src="assets/character-day.webp" alt="" width="503" height="900" decoding="async"><img class="character character-night" src="assets/character-night.webp" alt="" width="506" height="900" decoding="async"><span class="art-caption">日常 · 也有一点魔法</span></div>
+        <div class="schedule-toolbar" aria-label="排班方案"><div class="preset-area"><span class="toolbar-label">当前方案</span><div class="preset-bar" id="presetBar"></div></div><div class="toolbar-actions"><button class="button button-secondary" onclick="saveAsPreset()" title="保存当前排班方案"><span aria-hidden="true">＋</span> 保存方案</button><button class="button button-primary" onclick="openSettings()" aria-label="打开排班设置"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path><circle cx="8" cy="6" r="2"></circle><circle cx="16" cy="12" r="2"></circle><circle cx="10" cy="18" r="2"></circle></svg> 编辑排班</button></div></div>
+      </section>
+      <p class="storage-notice" id="storageNotice" role="status" hidden=""></p>
+
+      <section class="today-card enter-stage" aria-label="今日班次概览"><div class="festival-notice today-festival" id="todayFestival" hidden></div>
+        <div class="today-identity"><div class="card-heading"><span class="briefing-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><h2 id="todayLabel">今天的节奏</h2><span class="today-date" id="todayDate"></span></div><div class="today-shift" id="todayShift"></div><p class="shift-time" id="todayShiftTime"></p></div>
+        <div class="today-cycle-block"><div class="today-cycle">周期进度 <span><b id="todayCycle"></b><span class="cycle-divider"> / </span><b id="cycleLength"></b> 天</span></div><div class="cycle-progress" role="progressbar" aria-label="排班周期进度" aria-valuemin="0" aria-valuemax="100" id="cycleProgress"><div class="progress-bar" id="progressBar"><span class="progress-charm" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></span></div></div><div class="rest-countdown"><span>下一次休息</span><strong id="restCountdown">—</strong></div></div>
+        <div class="next-shifts-block"><p class="section-label">接下来的工作</p><div class="next-shift-info" id="nextShiftContainer"></div></div>
+        <div class="countdown-block"><div class="countdown-container"><div class="countdown-item"><span class="countdown-label">距离上班</span><strong class="countdown-value" id="countdownToWork">--:--:--</strong></div><div class="countdown-item"><span class="countdown-label">距离下班</span><strong class="countdown-value" id="countdownToOff">--:--:--</strong></div></div></div>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="calendar-section panel enter-stage" id="calendarSection" aria-label="月度排班日历"><div class="theme-frame" aria-hidden="true"><span class="frame-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><svg class="frame-pendant ornament-day" viewBox="0 0 40 64" focusable="false"><use href="#silver-pendant"></use></svg><svg class="frame-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div>
+          <div class="calendar-heading"><div><p class="eyebrow calendar-eyebrow">月度安排 <span class="heading-rule"></span></p><div class="month-navigation"><button class="month-title" id="monthTitle" onclick="openPicker()" aria-haspopup="dialog" title="选择年月"></button><div class="month-arrows"><button class="nav-btn" id="prevBtn" onclick="prevMonth()" aria-label="上个月">‹</button><button class="nav-btn" id="nextBtn" onclick="nextMonth()" aria-label="下个月">›</button></div></div></div><div class="calendar-actions"><span class="month-meta" id="monthMeta"></span><button class="button today-button" id="backToToday" title="回到今天 · T"><span class="today-button-dot" aria-hidden="true"></span> 今天</button></div></div>
+          <div class="calendar-subhead"><div class="legend" id="legendContainer" aria-label="班次图例"></div><span class="calendar-tip">留一点时间，给自己。</span></div>
+          <div class="calendar"><div class="weekdays" aria-hidden="true"><div>周一 <span>MON</span></div><div>周二 <span>TUE</span></div><div>周三 <span>WED</span></div><div>周四 <span>THU</span></div><div>周五 <span>FRI</span></div><div class="weekend">周六 <span>SAT</span></div><div class="weekend">周日 <span>SUN</span></div></div><div class="days-grid" id="daysGrid"></div></div>
+          <div class="calendar-footnote"><span><span class="today-key"></span> 今天 <span class="selection-key"></span> 已选日期</span><span class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> 切月 <kbd>T</kbd> 今天 <kbd>Esc</kbd> 关闭</span><span>点击日期查看安排 <span aria-hidden="true">↗</span></span></div>
+        </section>
+
+        <aside class="sidebar" aria-label="月度统计和近期安排">
+          <section class="stats-section panel enter-stage" aria-labelledby="statsTitle"><div class="theme-frame" aria-hidden="true"><span class="frame-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><svg class="frame-pendant ornament-day" viewBox="0 0 40 64" focusable="false"><use href="#silver-pendant"></use></svg><svg class="frame-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div><div class="section-heading"><h2 id="statsTitle">本月概览</h2><span id="statsMonth"></span></div><div class="stats-container" id="statsContainer"></div><div class="work-hours-card" aria-label="所选月份计划工时"><div><p class="work-hours-label">本月计划工时</p><div><strong id="workHours">0</strong><span class="work-hours-unit">小时</span></div><p class="hours-note">按班次开始日计入当月</p></div><div class="ring-chart-wrapper"><div class="ring-chart" id="ringChart" role="img" aria-label="本月工作日占比"><div class="ring-chart-inner" id="ringChartInner">0%</div></div><span class="ring-caption">工作日占比</span></div><div class="ring-legend" id="ringLegend"></div></div></section>
+          <section class="upcoming-panel panel enter-stage" id="upcomingPanel" aria-labelledby="upcomingTitle"><div class="theme-frame" aria-hidden="true"><span class="frame-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><svg class="frame-pendant ornament-day" viewBox="0 0 40 64" focusable="false"><use href="#silver-pendant"></use></svg><svg class="frame-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div><div class="section-heading"><div><p class="eyebrow">不用等到明天才知道</p><h2 id="upcomingTitle">未来七天</h2></div><span class="week-range" id="weekRange"></span></div><div class="upcoming-list" id="upcomingList"></div><p class="agenda-footnote"><span class="live-dot" aria-hidden="true"></span> 每一天，都提前心中有数</p></section>
+          <section class="detail-panel panel" id="detailPanel" aria-label="选中日期详情"><div class="theme-frame" aria-hidden="true"><span class="frame-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><svg class="frame-pendant ornament-day" viewBox="0 0 40 64" focusable="false"><use href="#silver-pendant"></use></svg><svg class="frame-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div><div class="detail-header"><div><p class="eyebrow">这一天的安排</p><h2 id="detailHeading"></h2></div><button class="icon-btn" onclick="closeDetail()" aria-label="关闭日期详情">×</button></div><div class="festival-notice detail-festival" id="detailFestival" hidden></div><div class="detail-summary"><strong class="detail-shift" id="detailShift"></strong><span id="detailTime"></span></div><p class="detail-date" id="detailDate"></p><div class="detail-cycle">周期第 <b id="detailCycle"></b> 天</div><div class="detail-extra" id="detailExtra"></div><button class="button button-secondary detail-back" onclick="closeDetail()">← 返回未来七天</button></section>
+        </aside>
+      </div>
+
+      <details class="year-overview panel enter-stage" id="yearOverview"><summary><div class="year-overview-heading"><span class="year-icon" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><div><h2 id="heatmapTitle">年度排班总览</h2><p>把时间看得更远一点</p></div></div><span class="year-overview-action"><span class="expand-label">展开 12 个月</span><span class="collapse-label">收起总览</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></span></summary><div class="year-content"><p class="year-explanation">一年的忙碌与闲暇，浓缩在这里。点击月份或日期，回到月历查看。</p><div class="heatmap-grid" id="heatmapGrid"></div></div></details>
+    </main>
+
+    <footer class="footer"><div><span class="footer-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><span class="footer-brand">清蒸排班</span><span id="slogan">有序工作，自在生活。</span></div><p id="footerHint">配置仅保存在当前设备</p><p class="calendar-data-note">节日仅作日期参考，不代表法定放假或调休安排。历法资料：<a href="https://www.hko.gov.hk/sc/gts/time/conversion.htm" target="_blank" rel="noopener noreferrer">香港天文台</a>（2025–2030）。</p></footer>
+  </div>
+
+  <div class="picker-overlay" id="pickerModal" hidden=""><section class="picker-content" role="dialog" aria-modal="true" aria-labelledby="pickerTitle" tabindex="-1"><h2 id="pickerTitle">选择年月</h2><div class="picker-year-row"><button class="icon-btn" id="pickerPrev" onclick="pickerPrevYear()" aria-label="上一年">‹</button><strong id="pickerYearLabel"></strong><button class="icon-btn" id="pickerNext" onclick="pickerNextYear()" aria-label="下一年">›</button></div><div class="picker-months" id="pickerMonths"></div><button class="button button-secondary picker-close" onclick="closePicker()">关闭</button></section></div>
+  <div class="modal" id="settingsModal" hidden=""><section class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1"><div class="modal-header"><div><p class="eyebrow">每个人，都有自己的节奏</p><h2 id="settingsTitle">排班设置</h2></div><button class="icon-btn" onclick="closeSettings()" aria-label="关闭排班设置">×</button></div><p class="form-description">设置一个起始日期和重复周期，其余交给日历。</p><div class="form-group"><label for="anchorDate">周期起始日期</label><input type="date" id="anchorDate" min="1900-01-01" max="2100-12-31"><small>这一天对应周期中的第一个班次。</small></div><div class="form-group"><label for="cyclePattern">周期顺序</label><textarea id="cyclePattern" rows="3" placeholder="白班 夜班 休息 白班 夜班 休息 休息 休息" aria-describedby="cycleHint"></textarea><small id="cycleHint">用空格分隔班次名称，周期会按顺序循环。每个名称最多 40 个字符。</small></div><div class="settings-section-heading"><h3>班次与时间</h3><button class="button button-secondary button-small" onclick="addShiftDef()">＋ 添加班次</button></div><div id="shiftDefsEditor"></div><p class="form-note">下班时间早于或等于上班时间时，自动视为次日下班；也可手动勾选跨日。</p><p class="form-error" id="settingsError" role="alert" hidden=""></p><div class="btn-group"><button class="button button-secondary" onclick="closeSettings()">取消</button><button class="button button-primary" onclick="saveSettings()">保存设置</button></div></section></div>
+  <div class="toast" id="toast" role="status" hidden=""></div><noscript><p class="noscript">请启用 JavaScript 以使用排班日历。</p></noscript>
+
+
+</body></html>

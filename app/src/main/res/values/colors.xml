@@ -1,19 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  银昼（默认浅色主题）
+  与网页内核 assets/styles.css、assets/themes.css 的银昼配色保持一致。
+  深色（蓝夜）配色见 values-night/colors.xml。
+-->
 <resources>
-    <color name="colorPrimary">#F0883E</color>
-    <color name="colorPrimaryDark">#D55F0A</color>
-    <color name="colorAccent">#F0883E</color>
-    <color name="bg">#0D1117</color>
-    <color name="bg_card">#161B22</color>
-    <color name="bg_cell">#21262D</color>
-    <color name="border">#30363D</color>
-    <color name="text">#E6EDF3</color>
-    <color name="text_muted">#7D8590</color>
-    <color name="accent">#F0883E</color>
-    <color name="day_color">#58A6FF</color>
-    <color name="night_color">#A371F7</color>
-    <color name="rest_color">#3FB950</color>
-    <color name="today_bg">#F0883E08</color>
-    <color name="today_border">#F0883E</color>
-    <color name="accent_transparent">#1AF0883E</color>
+    <color name="colorPrimary">#81709F</color>
+    <color name="colorPrimaryDark">#70608C</color>
+    <color name="colorAccent">#81709F</color>
+
+    <color name="bg">#F0F0F7</color>
+    <color name="bg_card">#FFFEFD</color>
+    <color name="bg_cell">#F6F6FA</color>
+    <color name="border">#DCDCE8</color>
+    <color name="text">#36374D</color>
+    <color name="text_muted">#73748A</color>
+    <color name="accent">#81709F</color>
+
+    <color name="day_color">#5483A5</color>
+    <color name="night_color">#8A73B0</color>
+    <color name="rest_color">#4D8B68</color>
+    <color name="noon_color">#A17A35</color>
+    <color name="morning_color">#398E8B</color>
+    <color name="evening_color">#B57091</color>
+
+    <!-- 自适应图标背景（取自原图边缘平均色） -->
+    <color name="ic_launcher_background">#8A576A</color>
+    <color name="widget_surface">#FFFEFD</color>
+    <color name="widget_surface_end">#F2F3FA</color>
+    <color name="widget_panel">#EBEDF6</color>
+    <color name="widget_stroke">#D8DBE9</color>
+    <color name="widget_ink">#34364E</color>
+    <color name="widget_muted">#70768D</color>
+    <color name="widget_accent">#786695</color>
+    <color name="widget_orbit">#BCC5DF</color>
+    <color name="widget_badge">#EEF1F7</color>
 </resources>

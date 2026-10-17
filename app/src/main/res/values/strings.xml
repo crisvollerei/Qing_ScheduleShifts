@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_shift_title">今日班次</string>
+    <string name="widget_yesterday_shift">昨日班次 · 延续中</string>
+    <string name="widget_rest_all_day">全天休息</string>
+    <string name="widget_no_upcoming">暂无后续工作班次</string>
+    <string name="widget_countdown_to_work">距离上班</string>
+    <string name="widget_countdown_to_off">距离下班</string>
+    <string name="widget_cycle_position">周期第 %1$d / %2$d 天</string>
+    <string name="widget_status_rest">好好休息</string>
+    <string name="widget_status_before">尚未上班</string>
+    <string name="widget_status_work">正在上班</string>
+    <string name="widget_status_after">今日已下班</string>
+    <string name="widget_now">此刻</string>
+    <string name="widget_refresh">刷新班次信息</string>
+    <string name="widget_description">实时班次、周期进度、后续排班与上下班倒计时；随尺寸和系统深浅色自动适配。</string>
+    <string name="widget_alarm_title">让桌面班次准时切换</string>
+    <string name="widget_alarm_message">时钟和倒计时由桌面逐秒刷新。为让倒计时归零后，班次、日期和文案也准时切换，请允许“闹钟和提醒”。不允许时仍可使用，但系统可能延迟切换；点击小组件右上角可立即刷新。</string>
+    <string name="widget_alarm_allow">去允许</string>
+    <string name="widget_alarm_later">暂不设置</string>
+    <string name="widget_next_week">未来七天</string>
+</resources>

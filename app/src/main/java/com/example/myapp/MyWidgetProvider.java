@@ -7,344 +7,648 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.Looper;
-import android.text.format.DateFormat;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.SystemClock;
+import android.util.SizeF;
+import android.util.TypedValue;
+import android.view.View;
 import android.widget.RemoteViews;
-import androidx.core.content.ContextCompat;
+
 import org.json.JSONArray;
 import org.json.JSONException;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
+import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+
+/**
+ * 桌面小部件。
+ *
+ * 数据来自网页内核保存到 SharedPreferences("WidgetSettings") 的
+ * cycle / anchorDate / shiftDefs，与网页的排班规则保持一致：
+ * <ul>
+ *   <li>周期位置按民用日期的 UTC 日序号计算，不受时区与夏令时影响；</li>
+ *   <li>跨日判定与网页一致：isWork 且 (crossDay 为真 或 endTime &lt;= startTime)；</li>
+ *   <li>仍在进行中的昨日跨日班次按昨日班次显示，结束时刻取该班次自己的 endTime，
+ *       不再写死早上 8 点；</li>
+ *   <li>“距下次某班次”按周期里实际出现的工作班次动态生成，不再写死白班/夜班。</li>
+ * </ul>
+ *
+ * 时钟和倒计时由桌面原生控件逐秒更新；排班仅在状态边界重新计算。
+ */
 public class MyWidgetProvider extends AppWidgetProvider {
 
-    private static final Handler handler = new Handler(Looper.getMainLooper());
-    private static Runnable updateRunnable;
+    private static final int API_CHRONOMETER_COUNTDOWN = 24;
 
-    private static String[] getCycle(Context context) {
-        SharedPreferences preferences = context.getSharedPreferences("WidgetSettings", Context.MODE_PRIVATE);
-        String cycleStr = preferences.getString("cycle", "");
-        if (!cycleStr.isEmpty()) {
+    // ==================== 数据模型 ====================
+
+    static class ShiftDef {
+        String emoji = "📋";
+        String cssClass = "day";
+        String startTime;
+        String endTime;
+        boolean isWork = true;
+        boolean crossDay = false;
+    }
+
+    /** 某一天的排班结果，含实际生效的起止时刻。 */
+    static class ShiftSlot {
+        String name;
+        ShiftDef def;
+        Calendar start;
+        Calendar end;
+        Calendar day;
+    }
+
+    private static ShiftDef defaultDef(String name) {
+        boolean rest = name.contains("休") || name.contains("假");
+        ShiftDef def = new ShiftDef();
+        def.emoji = rest ? "🌿" : "📋";
+        def.cssClass = rest ? "rest" : "day";
+        def.isWork = !rest;
+        if (def.isWork) {
+            def.startTime = "09:00";
+            def.endTime = "17:00";
+        }
+        return def;
+    }
+
+    private static Map<String, ShiftDef> defaultDefs() {
+        Map<String, ShiftDef> defs = new LinkedHashMap<>();
+        ShiftDef day = new ShiftDef();
+        day.emoji = "☀️"; day.cssClass = "day"; day.startTime = "08:00"; day.endTime = "20:00"; day.isWork = true;
+        defs.put("白班", day);
+
+        ShiftDef noon = new ShiftDef();
+        noon.emoji = "🌤️"; noon.cssClass = "noon"; noon.startTime = "14:00"; noon.endTime = "22:00"; noon.isWork = true;
+        defs.put("中班", noon);
+
+        ShiftDef night = new ShiftDef();
+        night.emoji = "🌙"; night.cssClass = "night"; night.startTime = "20:00"; night.endTime = "08:00";
+        night.isWork = true; night.crossDay = true;
+        defs.put("夜班", night);
+
+        ShiftDef rest = new ShiftDef();
+        rest.emoji = "🌿"; rest.cssClass = "rest"; rest.isWork = false;
+        defs.put("休息", rest);
+
+        return defs;
+    }
+
+    // ==================== 读取网页保存的配置 ====================
+
+    private static SharedPreferences prefs(Context context) {
+        return context.getSharedPreferences("WidgetSettings", Context.MODE_PRIVATE);
+    }
+
+    /**
+     * 读取班次定义。网页只保存用户改过的班次时，其余按名称推断，
+     * 与网页 schedule-core.js 的 defaultDef 规则保持一致。
+     */
+    static Map<String, ShiftDef> readShiftDefs(Context context) {
+        String raw = prefs(context).getString("shiftDefs", "");
+        Map<String, ShiftDef> result = new LinkedHashMap<>();
+        if (raw != null && !raw.isEmpty()) {
             try {
-                JSONArray jsonArray = new JSONArray(cycleStr);
-                String[] cycle = new String[jsonArray.length()];
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    cycle[i] = jsonArray.getString(i);
+                JSONObject json = new JSONObject(raw);
+                Iterator<String> keys = json.keys();
+                while (keys.hasNext()) {
+                    String name = keys.next();
+                    JSONObject obj = json.optJSONObject(name);
+                    if (obj == null) continue;
+                    if (!validName(name)) continue;
+                    ShiftDef def = defaultDef(name);
+                    String css = obj.optString("cssClass", def.cssClass);
+                    def.cssClass = css.matches("day|night|rest|noon|morning|evening") ? css : def.cssClass;
+                    String[] styles = {"day", "night", "rest", "noon", "morning", "evening"};
+                    String[] icons = {"☀️", "🌙", "🌿", "🌤️", "🌅", "🌆"};
+                    String icon = "📋";
+                    for (int i = 0; i < styles.length; i++) if (styles[i].equals(def.cssClass)) icon = icons[i];
+                    Object emoji = obj.opt("emoji");
+                    def.emoji = emoji instanceof String && ((String) emoji).length() <= 16 ? (String) emoji : icon;
+                    Object work = obj.opt("isWork");
+                    if (work instanceof Boolean) def.isWork = (Boolean) work;
+                    def.crossDay = def.isWork && Boolean.TRUE.equals(obj.opt("crossDay"));
+                    def.startTime = optionalTime(obj, "startTime");
+                    def.endTime = optionalTime(obj, "endTime");
+                    if (def.isWork) {
+                        if (def.startTime == null) def.startTime = "09:00";
+                        if (def.endTime == null) def.endTime = "17:00";
+                    }
+                    result.put(name, def);
                 }
-                return cycle;
-            } catch (JSONException e) {
-                e.printStackTrace();
+                return result;
+            } catch (JSONException ignored) {
+                // 配置损坏时退回默认定义，小部件仍可显示。
             }
         }
+        return result.isEmpty() ? defaultDefs() : result;
+    }
+
+    private static String optionalTime(JSONObject obj, String key) {
+        if (obj.isNull(key)) return null;
+        String value = obj.optString(key, null);
+        return isValidTime(value) ? value : null;
+    }
+
+    private static boolean isValidTime(String value) {
+        return value != null && value.matches("([01]\\d|2[0-3]):[0-5]\\d");
+    }
+
+    private static ShiftDef defOf(String name, Map<String, ShiftDef> defs) {
+        ShiftDef def = defs.get(name);
+        return def != null ? def : defaultDef(name);
+    }
+
+    static String[] readCycle(Context context) {
+        String raw = prefs(context).getString("cycle", "");
+        if (raw != null && !raw.isEmpty()) {
+            try {
+                JSONArray array = new JSONArray(raw);
+                List<String> list = new ArrayList<>();
+                for (int i = 0; i < array.length(); i++) {
+                    Object entry = array.opt(i);
+                    if (!(entry instanceof String)) return defaultCycle();
+                    String name = (String) entry;
+                    if (!validName(name) || array.length() > 3660) return defaultCycle();
+                    list.add(name);
+                }
+                if (!list.isEmpty()) return list.toArray(new String[0]);
+            } catch (JSONException ignored) {
+                // 退回默认周期
+            }
+        }
+        return defaultCycle();
+    }
+
+    private static String[] defaultCycle() {
         return new String[]{"白班", "夜班", "休息", "白班", "夜班", "休息", "休息", "休息"};
     }
 
-    private static Calendar getAnchorDate(Context context) {
-        SharedPreferences preferences = context.getSharedPreferences("WidgetSettings", Context.MODE_PRIVATE);
-        String anchorDateStr = preferences.getString("anchorDate", "");
-        if (!anchorDateStr.isEmpty()) {
-            try {
-                String[] parts = anchorDateStr.split("-");
-                if (parts.length == 3) {
-                    int year = Integer.parseInt(parts[0]);
-                    int month = Integer.parseInt(parts[1]) - 1;
-                    int day = Integer.parseInt(parts[2]);
-                    Calendar anchor = Calendar.getInstance();
-                    anchor.set(year, month, day, 0, 0, 0);
-                    anchor.set(Calendar.MILLISECOND, 0);
-                    return anchor;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        Calendar anchor = Calendar.getInstance();
-        anchor.set(2026, Calendar.APRIL, 18, 0, 0, 0);
-        anchor.set(Calendar.MILLISECOND, 0);
+    private static boolean validName(String name) {
+        return name != null && !name.isEmpty() && name.length() <= 40
+                && !java.util.regex.Pattern.compile("[\\s\\p{Z}\\uFEFF]")
+                    .matcher(name).find();
+    }
+
+    private static Calendar readAnchor(Context context) {
+        Calendar anchor = parseAnchor(prefs(context).getString("anchorDate", ""));
+        if (anchor != null) return anchor;
+        anchor = midnight(Calendar.getInstance());
+        anchor.set(2026, Calendar.APRIL, 18);
         return anchor;
     }
 
-    @Override
-    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        updateWidget(context, appWidgetManager, appWidgetIds);
-        startUpdateTimer(context, appWidgetManager, appWidgetIds);
-    }
-
-    @Override
-    public void onEnabled(Context context) {
-    }
-
-    @Override
-    public void onDisabled(Context context) {
-        if (updateRunnable != null) {
-            handler.removeCallbacks(updateRunnable);
+    static Calendar parseAnchor(String raw) {
+        if (raw == null || !raw.matches("\\d{4}-\\d{2}-\\d{2}")) return null;
+        String[] parts = raw.split("-");
+        int year = Integer.parseInt(parts[0]);
+        if (year < 1900 || year > 2100) return null;
+        Calendar date = Calendar.getInstance();
+        date.clear();
+        date.setLenient(true);
+        date.set(year, Integer.parseInt(parts[1]) - 1, Integer.parseInt(parts[2]));
+        try {
+            if (date.get(Calendar.YEAR) != year || date.get(Calendar.MONTH) != Integer.parseInt(parts[1]) - 1
+                    || date.get(Calendar.DAY_OF_MONTH) != Integer.parseInt(parts[2])) return null;
+            return date;
+        } catch (IllegalArgumentException invalidDate) {
+            return null;
         }
     }
 
-    private void startUpdateTimer(final Context context, final AppWidgetManager appWidgetManager, final int[] appWidgetIds) {
-        if (updateRunnable != null) {
-            handler.removeCallbacks(updateRunnable);
-        }
+    // ==================== 日期与周期计算 ====================
 
-        updateRunnable = new Runnable() {
-            @Override
-            public void run() {
-                // 动态获取当前所有widget实例，确保新增/删除widget后更新逻辑依然正确
-                ComponentName componentName = new ComponentName(context, MyWidgetProvider.class);
-                int[] allWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
-                if (allWidgetIds != null && allWidgetIds.length > 0) {
-                    updateWidget(context, appWidgetManager, allWidgetIds);
-                    handler.postDelayed(this, 1000);
-                }
-            }
-        };
-
-        handler.post(updateRunnable);
+    private static Calendar midnight(Calendar source) {
+        Calendar value = (Calendar) source.clone();
+        value.set(Calendar.HOUR_OF_DAY, 0);
+        value.set(Calendar.MINUTE, 0);
+        value.set(Calendar.SECOND, 0);
+        value.set(Calendar.MILLISECOND, 0);
+        return value;
     }
 
-    private void updateWidget(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        for (int appWidgetId : appWidgetIds) {
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
-
-            Calendar now = Calendar.getInstance();
-            Date currentDate = now.getTime();
-
-            CharSequence todayDateCharSeq = DateFormat.format("yyyy年MM月dd日 EEEE", currentDate);
-            String todayDate = todayDateCharSeq != null ? todayDateCharSeq.toString() : "";
-            views.setTextViewText(R.id.today_date, todayDate);
-
-            int cycleIndex = getCycleIndex(context, now);
-            String[] cycle = getCycle(context);
-            String shift = cycle[cycleIndex];
-
-            if (shift.equals("白班")) {
-                views.setTextViewText(R.id.shift_emoji, "☀️");
-                views.setTextViewText(R.id.shift_name, "白班");
-                views.setTextColor(R.id.shift_name, ContextCompat.getColor(context, R.color.day_color));
-                views.setTextViewText(R.id.shift_time, "08:00 - 20:00");
-            } else if (shift.equals("夜班")) {
-                views.setTextViewText(R.id.shift_emoji, "🌙");
-                views.setTextViewText(R.id.shift_name, "夜班");
-                views.setTextColor(R.id.shift_name, ContextCompat.getColor(context, R.color.night_color));
-                views.setTextViewText(R.id.shift_time, "20:00 - 次日08:00");
-            } else {
-                views.setTextViewText(R.id.shift_emoji, "🏖️");
-                views.setTextViewText(R.id.shift_name, "休息");
-                views.setTextColor(R.id.shift_name, ContextCompat.getColor(context, R.color.rest_color));
-                views.setTextViewText(R.id.shift_time, "全天休息");
-            }
-
-            views.setTextViewText(R.id.cycle_info, "本周期第 " + (cycleIndex + 1) + " 天");
-
-            int nextDay = calculateNextShift(context, "白班", now);
-            int nextNight = calculateNextShift(context, "夜班", now);
-            views.setTextViewText(R.id.next_day, nextDay + "天");
-            views.setTextViewText(R.id.next_night, nextNight + "天");
-
-            CharSequence timeCharSeq = DateFormat.format("HH:mm:ss", now);
-            String time = timeCharSeq != null ? timeCharSeq.toString() : "";
-            views.setTextViewText(R.id.live_clock, time);
-
-            CountdownResult countdown = calculateCountdown(context, shift, now);
-            views.setTextViewText(R.id.countdown_work, countdown.workCountdown);
-            views.setTextViewText(R.id.countdown_off, countdown.offCountdown);
-
-            // 检查countdown_label和countdown_value视图是否存在
-            try {
-                views.setTextViewText(R.id.countdown_label, countdown.nextEventLabel);
-                views.setTextViewText(R.id.countdown_value, countdown.nextEventCountdown);
-            } catch (Exception e) {
-                // 如果视图不存在，忽略错误
-            }
-
-            // 设置点击小部件打开MainActivity的PendingIntent（Android 12要求指定FLAG_IMMUTABLE或FLAG_MUTABLE）
-            Intent clickIntent = new Intent(context, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, clickIntent,
-                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-            views.setOnClickPendingIntent(R.id.widget_container, pendingIntent);
-
-            appWidgetManager.updateAppWidget(appWidgetId, views);
-        }
+    private static Calendar addDays(Calendar source, int days) {
+        Calendar value = (Calendar) source.clone();
+        value.add(Calendar.DAY_OF_YEAR, days);
+        return midnight(value);
     }
 
-    private int getCycleIndex(Context context, Calendar date) {
-        Calendar anchor = getAnchorDate(context);
-        long diffMillis = date.getTimeInMillis() - anchor.getTimeInMillis();
-        long diffDays = diffMillis / (1000 * 60 * 60 * 24);
-        String[] cycle = getCycle(context);
-        int index = (int) (diffDays % cycle.length);
-        if (index < 0) {
-            index += cycle.length;
-        }
+    /** 民用日期的日序号；用 UTC 计算以避开夏令时与午夜边界偏差。 */
+    private static long dayNumber(Calendar date) {
+        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        utc.clear();
+        utc.set(date.get(Calendar.YEAR), date.get(Calendar.MONTH), date.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+        return utc.getTimeInMillis() / 86400000L;
+    }
+
+    private static int cycleIndexOf(Calendar date, Calendar anchor, String[] cycle) {
+        long diff = dayNumber(date) - dayNumber(anchor);
+        int index = (int) (diff % cycle.length);
+        if (index < 0) index += cycle.length;
         return index;
     }
 
-    private int calculateNextShift(Context context, String targetShift, Calendar from) {
-        Calendar check = (Calendar) from.clone();
-        check.set(Calendar.HOUR_OF_DAY, 0);
-        check.set(Calendar.MINUTE, 0);
-        check.set(Calendar.SECOND, 0);
-        check.set(Calendar.MILLISECOND, 0);
-
-        for (int i = 1; i <= 30; i++) {
-            check.add(Calendar.DAY_OF_YEAR, 1);
-            int idx = getCycleIndex(context, check);
-            String[] cycle = getCycle(context);
-            if (cycle[idx].equals(targetShift)) {
-                return i;
-            }
-        }
-        return -1;
+    private static String shiftNameAt(Calendar date, Calendar anchor, String[] cycle) {
+        return cycle[cycleIndexOf(date, anchor, cycle)];
     }
 
-    private static class CountdownResult {
-        String workCountdown;
-        String offCountdown;
-        String nextEventLabel;
-        String nextEventCountdown;
+    // ==================== 跨日判定 ====================
 
-        CountdownResult(String work, String off, String label, String value) {
-            this.workCountdown = work;
-            this.offCountdown = off;
-            this.nextEventLabel = label;
-            this.nextEventCountdown = value;
-        }
+    private static boolean isCrossDay(ShiftDef def) {
+        if (def == null || !def.isWork) return false;
+        if (!isValidTime(def.startTime) || !isValidTime(def.endTime)) return false;
+        if (def.crossDay) return true;
+        return def.endTime.compareTo(def.startTime) <= 0;
     }
 
-    private CountdownResult calculateCountdown(Context context, String shift, Calendar now) {
-        Calendar workStart = getWorkStartTime(now, shift);
-        Calendar workEnd = getWorkEndTime(now, shift);
-
-        long nowMillis = now.getTimeInMillis();
-
-        String workCountdown;
-        String offCountdown;
-        String nextEventLabel;
-        String nextEventCountdown;
-
-        if (shift.equals("休息")) {
-            workCountdown = "今日休息";
-            offCountdown = "今日休息";
-
-            Calendar nextWork = findNextWorkStart(context, now);
-            if (nextWork != null) {
-                long diffMillis = nextWork.getTimeInMillis() - nowMillis;
-                if (diffMillis > 0) {
-                    nextEventLabel = "距离上班";
-                    nextEventCountdown = formatCountdownHoursMinutes(diffMillis);
-                } else {
-                    nextEventLabel = "距离上班";
-                    nextEventCountdown = "已过";
-                }
-            } else {
-                nextEventLabel = "距离上班";
-                nextEventCountdown = "N/A";
-            }
-        } else {
-            if (nowMillis < workStart.getTimeInMillis()) {
-                workCountdown = formatCountdownHoursMinutes(workStart.getTimeInMillis() - nowMillis);
-            } else if (nowMillis < workEnd.getTimeInMillis()) {
-                workCountdown = "已上班";
-            } else {
-                workCountdown = "已下班";
-            }
-
-            if (nowMillis < workEnd.getTimeInMillis()) {
-                offCountdown = formatCountdownHoursMinutes(workEnd.getTimeInMillis() - nowMillis);
-            } else {
-                offCountdown = "已下班";
-            }
-
-            if (nowMillis < workStart.getTimeInMillis()) {
-                nextEventLabel = "距离上班";
-                nextEventCountdown = formatCountdownHoursMinutes(workStart.getTimeInMillis() - nowMillis);
-            } else if (nowMillis < workEnd.getTimeInMillis()) {
-                nextEventLabel = "距离下班";
-                nextEventCountdown = formatCountdownHoursMinutes(workEnd.getTimeInMillis() - nowMillis);
-            } else {
-                nextEventLabel = "已下班";
-                nextEventCountdown = "等待中";
-            }
+    /** 构造某一天的班次起止时刻；跨日班次的结束时刻落在次日。 */
+    private static ShiftSlot slotOf(Calendar day, String name, ShiftDef def) {
+        ShiftSlot slot = new ShiftSlot();
+        slot.name = name;
+        slot.def = def;
+        slot.day = midnight(day);
+        if (def == null || !def.isWork || !isValidTime(def.startTime) || !isValidTime(def.endTime)) {
+            slot.start = (Calendar) slot.day.clone();
+            slot.end = addDays(slot.day, 1);
+            return slot;
         }
-
-        return new CountdownResult(workCountdown, offCountdown, nextEventLabel, nextEventCountdown);
+        slot.start = (Calendar) slot.day.clone();
+        applyTime(slot.start, def.startTime);
+        slot.end = (Calendar) slot.day.clone();
+        if (isCrossDay(def)) slot.end.add(Calendar.DAY_OF_YEAR, 1);
+        applyTime(slot.end, def.endTime);
+        return slot;
     }
 
-    private Calendar getWorkStartTime(Calendar now, String shift) {
-        Calendar start = (Calendar) now.clone();
-        if (shift.equals("白班")) {
-            start.set(Calendar.HOUR_OF_DAY, 8);
-            start.set(Calendar.MINUTE, 0);
-            start.set(Calendar.SECOND, 0);
-            start.set(Calendar.MILLISECOND, 0);
-            if (now.getTimeInMillis() > start.getTimeInMillis()) {
-                return start;
-            }
-        } else if (shift.equals("夜班")) {
-            start.set(Calendar.HOUR_OF_DAY, 20);
-            start.set(Calendar.MINUTE, 0);
-            start.set(Calendar.SECOND, 0);
-            start.set(Calendar.MILLISECOND, 0);
-            if (now.getTimeInMillis() > start.getTimeInMillis()) {
-                return start;
-            }
-        }
-        return start;
+    private static void applyTime(Calendar target, String time) {
+        String[] parts = time.split(":");
+        target.set(Calendar.HOUR_OF_DAY, Integer.parseInt(parts[0]));
+        target.set(Calendar.MINUTE, Integer.parseInt(parts[1]));
+        target.set(Calendar.SECOND, 0);
+        target.set(Calendar.MILLISECOND, 0);
     }
 
-    private Calendar getWorkEndTime(Calendar now, String shift) {
-        Calendar end = (Calendar) now.clone();
-        if (shift.equals("白班")) {
-            end.set(Calendar.HOUR_OF_DAY, 20);
-            end.set(Calendar.MINUTE, 0);
-            end.set(Calendar.SECOND, 0);
-            end.set(Calendar.MILLISECOND, 0);
-        } else if (shift.equals("夜班")) {
-            end.add(Calendar.DAY_OF_YEAR, 1);
-            end.set(Calendar.HOUR_OF_DAY, 8);
-            end.set(Calendar.MINUTE, 0);
-            end.set(Calendar.SECOND, 0);
-            end.set(Calendar.MILLISECOND, 0);
+    /**
+     * 当前实际生效的班次。
+     * 若仍在昨天的跨日班次时段内，则延续昨天那一班；结束时刻取自该班次自身的 endTime。
+     */
+    private static ShiftSlot effectiveSlot(Calendar now, Calendar anchor, String[] cycle,
+                                           Map<String, ShiftDef> defs) {
+        Calendar today = midnight(now);
+        Calendar yesterday = addDays(today, -1);
+
+        String yesterdayName = shiftNameAt(yesterday, anchor, cycle);
+        ShiftDef yesterdayDef = defOf(yesterdayName, defs);
+        if (isCrossDay(yesterdayDef)) {
+            ShiftSlot previous = slotOf(yesterday, yesterdayName, yesterdayDef);
+            if (!now.before(previous.start) && now.before(previous.end)) return previous;
         }
-        return end;
+
+        String todayName = shiftNameAt(today, anchor, cycle);
+        return slotOf(today, todayName, defOf(todayName, defs));
     }
 
-    private Calendar findNextWorkStart(Context context, Calendar from) {
-        Calendar check = (Calendar) from.clone();
-        check.set(Calendar.HOUR_OF_DAY, 0);
-        check.set(Calendar.MINUTE, 0);
-        check.set(Calendar.SECOND, 0);
-        check.set(Calendar.MILLISECOND, 0);
-
-        for (int i = 1; i <= 30; i++) {
-            check.add(Calendar.DAY_OF_YEAR, 1);
-            int idx = getCycleIndex(context, check);
-            String[] cycle = getCycle(context);
-            String s = cycle[idx];
-            if (!s.equals("休息")) {
-                Calendar workStart = (Calendar) check.clone();
-                if (s.equals("白班")) {
-                    workStart.set(Calendar.HOUR_OF_DAY, 8);
-                } else if (s.equals("夜班")) {
-                    workStart.set(Calendar.HOUR_OF_DAY, 20);
-                }
-                workStart.set(Calendar.MINUTE, 0);
-                workStart.set(Calendar.SECOND, 0);
-                workStart.set(Calendar.MILLISECOND, 0);
-                return workStart;
-            }
+    /** 下一个尚未开始的工作班次；正在进行的班次由 countdownAt 单独处理。 */
+    private static ShiftSlot nextWorkSlot(Calendar from, Calendar anchor, String[] cycle,
+                                          Map<String, ShiftDef> defs) {
+        Calendar cursor = midnight(from);
+        long fromMillis = from.getTimeInMillis();
+        // 周期最长 3660 天，按整个周期查找，不设固定天数上限。
+        int limit = Math.min(cycle.length, 3660);
+        for (int offset = 0; offset <= limit; offset++) {
+            Calendar day = addDays(cursor, offset);
+            String name = shiftNameAt(day, anchor, cycle);
+            ShiftDef def = defOf(name, defs);
+            if (!def.isWork || !isValidTime(def.startTime)) continue;
+            ShiftSlot slot = slotOf(day, name, def);
+            if (slot.start.getTimeInMillis() > fromMillis) return slot;
         }
         return null;
     }
 
-    private String formatCountdownHoursMinutes(long ms) {
-        if (ms <= 0) return "00:00:00";
-        long totalSeconds = ms / 1000;
-        long totalHours = totalSeconds / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        long seconds = totalSeconds % 60;
-        return String.format(Locale.getDefault(), "%02d:%02d:%02d", totalHours, minutes, seconds);
+    // Every layout exposes the same IDs, including both live native time widgets.
+    @Override
+    public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
+        refreshAll(context);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager,
+                                          int id, Bundle options) {
+        refreshAll(context);
+    }
+
+    @Override
+    public void onEnabled(Context context) {
+        refreshAll(context);
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        WidgetRefresh.cancel(context);
+    }
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        super.onReceive(context, intent);
+        String action = intent.getAction();
+        if (WidgetRefresh.ACTION_TICK.equals(action)
+                || Intent.ACTION_BOOT_COMPLETED.equals(action)
+                || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)
+                || Intent.ACTION_TIME_CHANGED.equals(action)
+                || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
+                || Intent.ACTION_DATE_CHANGED.equals(action)
+                || AlarmManagerAction.EXACT_PERMISSION_CHANGED.equals(action)) {
+            refreshAll(context);
+        }
+    }
+
+    // Keep this constant separate so older Android releases never resolve newer APIs.
+    private static final class AlarmManagerAction {
+        static final String EXACT_PERMISSION_CHANGED =
+                "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED";
+    }
+
+    static void refreshAll(Context context) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int[] ids = manager.getAppWidgetIds(new ComponentName(context, MyWidgetProvider.class));
+        if (ids.length == 0) {
+            WidgetRefresh.cancel(context);
+            return;
+        }
+        Calendar now = Calendar.getInstance();
+        Calendar anchor = readAnchor(context);
+        String[] cycle = readCycle(context);
+        Map<String, ShiftDef> defs = readShiftDefs(context);
+        ShiftSlot slot = effectiveSlot(now, anchor, cycle, defs);
+        Countdown countdown = countdownAt(now, slot, anchor, cycle, defs);
+        for (int id : ids) {
+            manager.updateAppWidget(id, responsiveViews(context, manager.getAppWidgetOptions(id),
+                    now, slot, anchor, cycle, defs, countdown));
+        }
+        // Schedule ONCE, after rendering; a generic update must not replace this boundary.
+        WidgetRefresh.schedule(context, nextStateChange(now, slot, anchor, cycle, defs));
+    }
+
+    static long nextStateChange(Calendar now, ShiftSlot slot, Calendar anchor,
+                                String[] cycle, Map<String, ShiftDef> defs) {
+        long current = now.getTimeInMillis();
+        long next = addDays(now, 1).getTimeInMillis();
+        for (long event : new long[]{slot.start.getTimeInMillis(), slot.end.getTimeInMillis()}) {
+            if (event > current) next = Math.min(next, event);
+        }
+        ShiftSlot work = nextWorkSlot(now, anchor, cycle, defs);
+        if (work != null) next = Math.min(next, work.start.getTimeInMillis());
+        return next;
+    }
+
+    private static RemoteViews responsiveViews(Context context, Bundle options, Calendar now,
+            ShiftSlot slot, Calendar anchor, String[] cycle, Map<String, ShiftDef> defs,
+            Countdown countdown) {
+        if (Build.VERSION.SDK_INT >= 31) {
+            ArrayList<SizeF> sizes = options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
+            Map<SizeF, RemoteViews> variants = new LinkedHashMap<>();
+            if (sizes != null) {
+                for (SizeF size : sizes) {
+                    if (size.getWidth() <= 0 || size.getHeight() <= 0) continue;
+                    variants.put(size, buildViews(context, size.getWidth(), size.getHeight(),
+                            now, slot, anchor, cycle, defs, countdown));
+                    if (variants.size() == 16) break;
+                }
+            }
+            if (!variants.isEmpty()) return new RemoteViews(variants);
+        }
+        // MIN_WIDTH and MAX_HEIGHT belong to portrait; MAX_WIDTH and MIN_HEIGHT to landscape.
+        int minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+        int maxW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minW);
+        int minH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 280);
+        int maxH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minH);
+        return new RemoteViews(
+                buildViews(context, maxW, minH, now, slot, anchor, cycle, defs, countdown),
+                buildViews(context, minW, maxH, now, slot, anchor, cycle, defs, countdown));
+    }
+
+    static int layoutFor(float width, float height) {
+        if (width >= 300 && width >= height * 1.2f) return R.layout.widget_layout_wide;
+        if (width >= 224 && height >= 320) return R.layout.widget_layout;
+        return R.layout.widget_layout_small;
+    }
+
+    static RemoteViews buildViews(Context context, float width, float height, Calendar now,
+            ShiftSlot slot, Calendar anchor, String[] cycle, Map<String, ShiftDef> defs,
+            Countdown countdown) {
+        int layout = layoutFor(width, height);
+        boolean small = layout == R.layout.widget_layout_small;
+        boolean wide = layout == R.layout.widget_layout_wide;
+        RemoteViews views = new RemoteViews(context.getPackageName(), layout);
+        boolean previous = dayNumber(now) != dayNumber(slot.day);
+        views.setTextViewText(R.id.shift_title, context.getString(previous
+                ? R.string.widget_yesterday_shift : R.string.widget_shift_title));
+        String date = new SimpleDateFormat(width < 190 ? "M/d EEE" : width < 240 || wide
+                ? "M月d日 EEE" : "yyyy年M月d日 EEE", Locale.CHINA).format(now.getTime());
+        views.setTextViewText(R.id.today_date, date);
+        views.setContentDescription(R.id.today_date,
+                new SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINA).format(now.getTime()));
+        views.setTextViewText(R.id.shift_emoji, slot.def.emoji);
+        views.setTextViewText(R.id.shift_name, slot.name);
+        // Keep text colors as resource references so the host can reapply night mode.
+        boolean work = slot.def.isWork;
+        views.setTextViewText(R.id.shift_time, work
+                ? (previous && small ? "昨日 " : "") + slot.def.startTime + " – " + (isCrossDay(slot.def) ? "次日 " : "") + slot.def.endTime
+                : context.getString(R.string.widget_rest_all_day));
+        views.setTextViewText(R.id.shift_status, context.getString(!work ? R.string.widget_status_rest
+                : now.before(slot.start) ? R.string.widget_status_before
+                : now.before(slot.end) ? R.string.widget_status_work : R.string.widget_status_after));
+        int position = cycleIndexOf(slot.day, anchor, cycle) + 1;
+        views.setTextViewText(R.id.cycle_info, context.getString(R.string.widget_cycle_position,
+                position, cycle.length));
+        views.setProgressBar(R.id.progress_bar, cycle.length, position, false);
+        views.setContentDescription(R.id.progress_bar,
+                context.getString(R.string.widget_cycle_position, position, cycle.length));
+        bindUpcoming(context, views, now, anchor, cycle, defs);
+        views.setTextViewText(R.id.countdown_label, context.getString(countdown.label));
+        views.setTextViewText(R.id.countdown_detail, countdown.target == 0
+                ? context.getString(R.string.widget_no_upcoming)
+                : new SimpleDateFormat("M/d HH:mm", Locale.CHINA).format(countdown.target)
+                    + " · " + countdown.shiftName);
+        boolean nativeCountdown = Build.VERSION.SDK_INT >= API_CHRONOMETER_COUNTDOWN && countdown.target > 0;
+        views.setViewVisibility(R.id.countdown_chronometer, nativeCountdown ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.countdown_text, nativeCountdown ? View.GONE : View.VISIBLE);
+        if (nativeCountdown) {
+            views.setChronometerCountDown(R.id.countdown_chronometer, true);
+            views.setChronometer(R.id.countdown_chronometer,
+                    SystemClock.elapsedRealtime() + countdown.target - System.currentTimeMillis(), null, true);
+        } else {
+            views.setChronometer(R.id.countdown_chronometer, SystemClock.elapsedRealtime(), null, false);
+            views.setTextViewText(R.id.countdown_text, countdown.target == 0 ? "—"
+                    : formatHms(countdown.target - System.currentTimeMillis()));
+        }
+        // Bound the effective font size so large system fonts and long hour totals cannot clip.
+        float fontScale = context.getResources().getConfiguration().fontScale;
+        float column = wide ? (width - 80) / 2 : small ? width - 40 : (width - 60) / 2.25f * 1.25f;
+        int digits = Math.max(2, String.valueOf(Math.max(0,
+                countdown.target - now.getTimeInMillis()) / 3600000L).length()) + 6;
+        float timerSize = Math.min(small ? 21 : 28, column / (digits * .62f));
+        textSize(views, R.id.countdown_chronometer, timerSize / fontScale);
+        textSize(views, R.id.countdown_text, timerSize / fontScale);
+        float clockColumn = wide ? (width - 60) / 2 : small ? width - 60 : (width - 60) / 2.25f;
+        textSize(views, R.id.live_clock, Math.min(small ? 18 : 30, clockColumn / 4.5f) / fontScale);
+        textSize(views, R.id.shift_name, (small ? (width >= 224 ? 26 : 22) : height >= 380 ? 40 : wide && height < 260 ? 26 : 32) / fontScale);
+        textSize(views, R.id.shift_emoji, (small ? 24 : 32) / fontScale);
+        for (int id : new int[]{R.id.today_date, R.id.shift_status, R.id.cycle_info,
+                R.id.next_shifts, R.id.countdown_label}) textSize(views, id, (small ? 10 : 11) / fontScale);
+        textSize(views, R.id.shift_time, (small ? 10 : 12) / fontScale);
+        textSize(views, R.id.countdown_detail, (small ? 9 : 10) / fontScale);
+        if (wide && height < 260) views.setViewVisibility(R.id.shift_status, View.GONE);
+        views.setViewVisibility(R.id.countdown_detail, small && height < 240 ? View.GONE : View.VISIBLE);
+        if (small) {
+            views.setInt(R.id.next_shifts, "setMaxLines", 1);
+        }
+        if (layout == R.layout.widget_layout) {
+            boolean showWeek = height >= 380;
+            views.setViewVisibility(R.id.week_strip, showWeek ? View.VISIBLE : View.GONE);
+            if (showWeek) {
+                int[] days = {R.id.week_day_0, R.id.week_day_1, R.id.week_day_2,
+                        R.id.week_day_3, R.id.week_day_4, R.id.week_day_5, R.id.week_day_6};
+                for (int i = 0; i < days.length; i++) {
+                    Calendar day = addDays(now, i + 1);
+                    String name = shiftNameAt(day, anchor, cycle);
+                    views.setTextViewText(days[i], day.get(Calendar.DAY_OF_MONTH) + "\n" + defOf(name, defs).emoji);
+                    views.setContentDescription(days[i], new SimpleDateFormat("M月d日 EEE", Locale.CHINA)
+                            .format(day.getTime()) + " " + name);
+                    textSize(views, days[i], 10 / fontScale);
+                }
+            }
+        }
+        bindClick(context, views);
+        PendingIntent refresh = PendingIntent.getBroadcast(context, 1002,
+                new Intent(context, MyWidgetProvider.class).setAction(WidgetRefresh.ACTION_TICK),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.refresh_button, refresh);
+        return views;
+    }
+
+    private static void textSize(RemoteViews views, int id, float size) {
+        views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, size);
+    }
+
+    private static void bindUpcoming(Context context, RemoteViews views, Calendar now,
+            Calendar anchor, String[] cycle, Map<String, ShiftDef> defs) {
+        List<String> names = distinctWorkShiftNames(cycle, defs);
+        Map<String, Integer> upcoming = new LinkedHashMap<>();
+        int current = cycleIndexOf(now, anchor, cycle);
+        for (int offset = 1; offset <= cycle.length; offset++) {
+            String name = cycle[(current + offset) % cycle.length];
+            if (!upcoming.containsKey(name)) upcoming.put(name, offset);
+        }
+        List<String> parts = new ArrayList<>();
+        for (String name : names.subList(0, Math.min(8, names.size()))) {
+            parts.add(defOf(name, defs).emoji + " " + name + " " + upcoming.get(name) + "天");
+        }
+        String visible = parts.isEmpty() ? context.getString(R.string.widget_no_upcoming)
+                : String.join(" · ", parts.subList(0, Math.min(2, parts.size())))
+                    + (names.size() > 2 ? " · +" + (names.size() - 2) : "");
+        views.setTextViewText(R.id.next_shifts, visible);
+        views.setContentDescription(R.id.next_shifts, parts.isEmpty() ? visible : String.join(" · ", parts));
+    }
+
+    private static List<String> distinctWorkShiftNames(String[] cycle, Map<String, ShiftDef> defs) {
+        LinkedHashSet<String> names = new LinkedHashSet<>();
+        for (String name : cycle) {
+            if (defOf(name, defs).isWork) names.add(name);
+        }
+        return new ArrayList<>(names);
+    }
+
+    // The web's "next shift" summary starts tomorrow, never today's already-finished shift.
+    private static int daysUntil(String target, Calendar now, Calendar anchor, String[] cycle) {
+        for (int offset = 1; offset <= cycle.length; offset++) {
+            if (shiftNameAt(addDays(now, offset), anchor, cycle).equals(target)) return offset;
+        }
+        return -1;
+    }
+
+    static final class Countdown {
+        final int label;
+        final long target;
+        final String shiftName;
+
+        Countdown(int label, long target, String shiftName) {
+            this.label = label;
+            this.target = target;
+            this.shiftName = shiftName;
+        }
+    }
+
+    static Countdown countdownAt(Calendar now, ShiftSlot slot, Calendar anchor,
+                                  String[] cycle, Map<String, ShiftDef> defs) {
+        if (slot.def.isWork) {
+            if (now.before(slot.start)) return new Countdown(R.string.widget_countdown_to_work,
+                    slot.start.getTimeInMillis(), slot.name);
+            if (now.before(slot.end)) return new Countdown(R.string.widget_countdown_to_off,
+                    slot.end.getTimeInMillis(), slot.name);
+        }
+        ShiftSlot next = nextWorkSlot(now, anchor, cycle, defs);
+        return next == null ? new Countdown(R.string.widget_status_rest, 0, "")
+                : new Countdown(R.string.widget_countdown_to_work, next.start.getTimeInMillis(), next.name);
+    }
+
+    private static void bindClick(Context context, RemoteViews views) {
+        Intent intent = new Intent(context, MainActivity.class);
+        PendingIntent pending = PendingIntent.getActivity(context, 0, intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        views.setOnClickPendingIntent(R.id.widget_container, pending);
+    }
+
+    static String formatHms(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        return String.format(Locale.getDefault(), "%02d:%02d:%02d",
+                seconds / 3600, (seconds % 3600) / 60, seconds % 60);
+    }
+
+    // ==================== 测试钩子（同包测试可见，不参与运行时逻辑） ====================
+
+    static int debugLayoutFor(int widthDp, int heightDp) {
+        return layoutFor(widthDp, heightDp);
+    }
+
+    static Map<String, ShiftDef> debugDefaultDefs() {
+        return defaultDefs();
+    }
+
+    static boolean debugIsCrossDay(ShiftDef def) {
+        return isCrossDay(def);
+    }
+
+    static int debugCycleIndex(Calendar date, Calendar anchor, String[] cycle) {
+        return cycleIndexOf(date, anchor, cycle);
+    }
+
+    static ShiftSlot debugEffectiveSlot(Calendar now, Calendar anchor, String[] cycle,
+                                        Map<String, ShiftDef> defs) {
+        return effectiveSlot(now, anchor, cycle, defs);
+    }
+
+    static Calendar debugMidnight(Calendar source) {
+        return midnight(source);
+    }
+
+    static java.util.List<String> debugDistinctWorkShiftNames(String[] cycle,
+                                                             Map<String, ShiftDef> defs) {
+        return distinctWorkShiftNames(cycle, defs);
+    }
+
+    static int debugDaysUntil(String target, Calendar now, Calendar anchor, String[] cycle) {
+        return daysUntil(target, now, anchor, cycle);
     }
 }

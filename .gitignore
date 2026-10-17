@@ -1,0 +1,51 @@
+# ── Android / Gradle 构建产物 ────────────────────────────────
+.gradle/
+build/
+app/build/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# ── 本机私有配置与签名材料（绝不提交）─────────────────────────
+local.properties
+*.jks
+*.keystore
+*.p12
+*.pepk
+keystore.properties
+
+# ── 发布产物 ────────────────────────────────────────────────
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+
+# ── IDE / 编辑器 ────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ── 系统与工具临时文件 ──────────────────────────────────────
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ── 开发依赖与本机临时目录 ──────────────────────────────────
+node_modules/
+.workbuddy/
+.backup/
+.qa/
+.wrangler/
+.dev.vars*
+.env*

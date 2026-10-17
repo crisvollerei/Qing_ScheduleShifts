@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  蓝夜（深色主题）
+  与网页内核 assets/styles.css、assets/themes.css 的蓝夜配色保持一致。
+  浅色（银昼）配色见 values/colors.xml。
+-->
+<resources>
+    <color name="colorPrimary">#A6C9DD</color>
+    <color name="colorPrimaryDark">#4B6E92</color>
+    <color name="colorAccent">#A6C9DD</color>
+
+    <color name="bg">#101B2D</color>
+    <color name="bg_card">#1B2B44</color>
+    <color name="bg_cell">#20334D</color>
+    <color name="border">#3B4C63</color>
+    <color name="text">#E8EEF5</color>
+    <color name="text_muted">#ABB9CD</color>
+    <color name="accent">#A6C9DD</color>
+
+    <color name="day_color">#95B8D0</color>
+    <color name="night_color">#BAA6DA</color>
+    <color name="rest_color">#A0C5A1</color>
+    <color name="noon_color">#D7B97A</color>
+    <color name="morning_color">#81C8C1</color>
+    <color name="evening_color">#DAA0BD</color>
+
+    <color name="widget_surface">#1A2B43</color>
+    <color name="widget_surface_end">#152237</color>
+    <color name="widget_panel">#233A54</color>
+    <color name="widget_stroke">#3B526C</color>
+    <color name="widget_ink">#ECF2F9</color>
+    <color name="widget_muted">#B1C1D5</color>
+    <color name="widget_accent">#C0D8EA</color>
+    <color name="widget_orbit">#647F9B</color>
+    <color name="widget_badge">#294158</color>
+</resources>
