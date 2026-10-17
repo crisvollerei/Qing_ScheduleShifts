@@ -76,6 +76,24 @@ public class WidgetLayoutResourcesTest {
         assertOnlyRemoteViews("widget_layout_wide.xml");
     }
 
+    @Test public void miniLayoutsUseOnlyRemoteViewsCompatibleWidgets() throws Exception {
+        assertOnlyRemoteViews("widget_layout_mini.xml");
+        assertOnlyRemoteViews("widget_layout_mini_wide.xml");
+        assertOnlyRemoteViews("widget_preview.xml");
+    }
+
+    @Test public void providerDefaultAndResizeMinimumAreBothTwoByTwo() throws Exception {
+        Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(new File("src/main/res/xml/my_widget_info.xml"));
+        Element provider = document.getDocumentElement();
+        for (String size : Arrays.asList("minWidth", "minHeight", "minResizeWidth", "minResizeHeight")) {
+            org.junit.Assert.assertEquals(size, "110dp", provider.getAttribute("android:" + size));
+        }
+        org.junit.Assert.assertEquals("2", provider.getAttribute("android:targetCellWidth"));
+        org.junit.Assert.assertEquals("2", provider.getAttribute("android:targetCellHeight"));
+        org.junit.Assert.assertEquals("@layout/widget_layout_mini", provider.getAttribute("android:initialLayout"));
+    }
+
     @Test
     public void plainViewIsNotAllowed() throws Exception {
         // 明确记录这条约束：普通 View 与 Space 都没有 @RemoteView 注解。
@@ -83,7 +101,8 @@ public class WidgetLayoutResourcesTest {
         assertFalse(ALLOWED.contains("Space"));
     }
     @Test public void everySizeKeepsAllRequiredInformationAndNativeSecondTicks() throws Exception {
-        for (String layout : Arrays.asList("widget_layout.xml", "widget_layout_small.xml", "widget_layout_wide.xml")) {
+        for (String layout : Arrays.asList("widget_layout.xml", "widget_layout_small.xml", "widget_layout_wide.xml",
+                "widget_layout_mini.xml", "widget_layout_mini_wide.xml")) {
             Document document = parse(layout);
             Set<String> ids = new HashSet<>();
             NodeList elements = document.getElementsByTagName("*");

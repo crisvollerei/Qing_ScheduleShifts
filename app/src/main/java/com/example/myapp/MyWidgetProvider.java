@@ -429,9 +429,9 @@ public class MyWidgetProvider extends AppWidgetProvider {
             if (!variants.isEmpty()) return new RemoteViews(variants);
         }
         // MIN_WIDTH and MAX_HEIGHT belong to portrait; MAX_WIDTH and MIN_HEIGHT to landscape.
-        int minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
+        int minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110);
         int maxW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minW);
-        int minH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 280);
+        int minH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110);
         int maxH = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, minH);
         return new RemoteViews(
                 buildViews(context, maxW, minH, now, slot, anchor, cycle, defs, countdown),
@@ -439,6 +439,10 @@ public class MyWidgetProvider extends AppWidgetProvider {
     }
 
     static int layoutFor(float width, float height) {
+        if (width < 156 || height < 216) {
+            return width >= 224 && width >= height * 1.2f
+                    ? R.layout.widget_layout_mini_wide : R.layout.widget_layout_mini;
+        }
         if (width >= 300 && width >= height * 1.2f) return R.layout.widget_layout_wide;
         if (width >= 224 && height >= 320) return R.layout.widget_layout;
         return R.layout.widget_layout_small;
@@ -450,11 +454,14 @@ public class MyWidgetProvider extends AppWidgetProvider {
         int layout = layoutFor(width, height);
         boolean small = layout == R.layout.widget_layout_small;
         boolean wide = layout == R.layout.widget_layout_wide;
+        boolean miniWide = layout == R.layout.widget_layout_mini_wide;
+        boolean mini = miniWide || layout == R.layout.widget_layout_mini;
+        boolean miniShort = mini && !miniWide && height < 128;
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
         boolean previous = dayNumber(now) != dayNumber(slot.day);
         views.setTextViewText(R.id.shift_title, context.getString(previous
                 ? R.string.widget_yesterday_shift : R.string.widget_shift_title));
-        String date = new SimpleDateFormat(width < 190 ? "M/d EEE" : width < 240 || wide
+        String date = new SimpleDateFormat(mini || width < 190 ? "M/d EEE" : width < 240 || wide
                 ? "M月d日 EEE" : "yyyy年M月d日 EEE", Locale.CHINA).format(now.getTime());
         views.setTextViewText(R.id.today_date, date);
         views.setContentDescription(R.id.today_date,
@@ -463,20 +470,35 @@ public class MyWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.shift_name, slot.name);
         // Keep text colors as resource references so the host can reapply night mode.
         boolean work = slot.def.isWork;
-        views.setTextViewText(R.id.shift_time, work
-                ? (previous && small ? "昨日 " : "") + slot.def.startTime + " – " + (isCrossDay(slot.def) ? "次日 " : "") + slot.def.endTime
-                : context.getString(R.string.widget_rest_all_day));
+        String workTime = work
+                ? slot.def.startTime + " – " + (isCrossDay(slot.def) ? "次日 " : "") + slot.def.endTime
+                : context.getString(R.string.widget_rest_all_day);
+        views.setContentDescription(R.id.shift_time, (previous && work ? "昨日 " : "") + workTime);
+        if (mini && work) {
+            workTime = (previous ? "昨" : "") + slot.def.startTime + "–"
+                    + (isCrossDay(slot.def) ? (previous ? "今" : "次日") : "") + slot.def.endTime;
+        } else if (previous && small && work) {
+            workTime = "昨日 " + workTime;
+        }
+        views.setTextViewText(R.id.shift_time, workTime);
         views.setTextViewText(R.id.shift_status, context.getString(!work ? R.string.widget_status_rest
                 : now.before(slot.start) ? R.string.widget_status_before
                 : now.before(slot.end) ? R.string.widget_status_work : R.string.widget_status_after));
         int position = cycleIndexOf(slot.day, anchor, cycle) + 1;
-        views.setTextViewText(R.id.cycle_info, context.getString(R.string.widget_cycle_position,
+        views.setTextViewText(R.id.cycle_info, context.getString(mini
+                ? R.string.widget_cycle_compact : R.string.widget_cycle_position,
                 position, cycle.length));
         views.setProgressBar(R.id.progress_bar, cycle.length, position, false);
         views.setContentDescription(R.id.progress_bar,
                 context.getString(R.string.widget_cycle_position, position, cycle.length));
         bindUpcoming(context, views, now, anchor, cycle, defs);
-        views.setTextViewText(R.id.countdown_label, context.getString(countdown.label));
+        int countdownLabel = countdown.label;
+        if (mini && !miniWide) {
+            if (countdown.label == R.string.widget_countdown_to_work) countdownLabel = R.string.widget_countdown_work_compact;
+            if (countdown.label == R.string.widget_countdown_to_off) countdownLabel = R.string.widget_countdown_off_compact;
+        }
+        views.setTextViewText(R.id.countdown_label, context.getString(countdownLabel));
+        views.setContentDescription(R.id.countdown_label, context.getString(countdown.label));
         views.setTextViewText(R.id.countdown_detail, countdown.target == 0
                 ? context.getString(R.string.widget_no_upcoming)
                 : new SimpleDateFormat("M/d HH:mm", Locale.CHINA).format(countdown.target)
@@ -495,22 +517,32 @@ public class MyWidgetProvider extends AppWidgetProvider {
         }
         // Bound the effective font size so large system fonts and long hour totals cannot clip.
         float fontScale = context.getResources().getConfiguration().fontScale;
-        float column = wide ? (width - 80) / 2 : small ? width - 40 : (width - 60) / 2.25f * 1.25f;
+        float column = miniWide ? (width - 28) / 2 : mini ? width - 42
+                : wide ? (width - 80) / 2 : small ? width - 40 : (width - 60) / 2.25f * 1.25f;
         int digits = Math.max(2, String.valueOf(Math.max(0,
                 countdown.target - now.getTimeInMillis()) / 3600000L).length()) + 6;
-        float timerSize = Math.min(small ? 21 : 28, column / (digits * .62f));
+        float timerSize = Math.min(miniWide ? 22 : miniShort ? 14 : mini ? 16 : small ? 21 : 28, column / (digits * .62f));
         textSize(views, R.id.countdown_chronometer, timerSize / fontScale);
         textSize(views, R.id.countdown_text, timerSize / fontScale);
-        float clockColumn = wide ? (width - 60) / 2 : small ? width - 60 : (width - 60) / 2.25f;
-        textSize(views, R.id.live_clock, Math.min(small ? 18 : 30, clockColumn / 4.5f) / fontScale);
-        textSize(views, R.id.shift_name, (small ? (width >= 224 ? 26 : 22) : height >= 380 ? 40 : wide && height < 260 ? 26 : 32) / fontScale);
-        textSize(views, R.id.shift_emoji, (small ? 24 : 32) / fontScale);
+        float clockColumn = miniWide ? (width - 28) / 2 : mini ? width - 12
+                : wide ? (width - 60) / 2 : small ? width - 60 : (width - 60) / 2.25f;
+        textSize(views, R.id.live_clock, Math.min(miniShort ? 20 : mini ? 24 : small ? 18 : 30, clockColumn / 4.5f) / fontScale);
+        textSize(views, R.id.shift_name, (miniShort ? 18 : mini ? 22 : small ? (width >= 224 ? 26 : 22) : height >= 380 ? 40 : wide && height < 260 ? 26 : 32) / fontScale);
+        textSize(views, R.id.shift_emoji, (miniWide ? 22 : mini ? 16 : small ? 24 : 32) / fontScale);
         for (int id : new int[]{R.id.today_date, R.id.shift_status, R.id.cycle_info,
-                R.id.next_shifts, R.id.countdown_label}) textSize(views, id, (small ? 10 : 11) / fontScale);
-        textSize(views, R.id.shift_time, (small ? 10 : 12) / fontScale);
-        textSize(views, R.id.countdown_detail, (small ? 9 : 10) / fontScale);
+                R.id.next_shifts, R.id.countdown_label}) textSize(views, id, (mini ? 9 : small ? 10 : 11) / fontScale);
+        textSize(views, R.id.shift_time, (mini ? 9 : small ? 10 : 12) / fontScale);
+        textSize(views, R.id.countdown_detail, (mini || small ? 9 : 10) / fontScale);
         if (wide && height < 260) views.setViewVisibility(R.id.shift_status, View.GONE);
-        views.setViewVisibility(R.id.countdown_detail, small && height < 240 ? View.GONE : View.VISIBLE);
+        views.setViewVisibility(R.id.countdown_detail,
+                (mini && height < (miniWide ? 144 : 216)) || (small && height < 240)
+                        ? View.GONE : View.VISIBLE);
+        if (mini) {
+            // At 2x2, keep the live information readable instead of squeezing in every label.
+            views.setViewVisibility(R.id.cycle_info, miniWide || height >= 144 ? View.VISIBLE : View.GONE);
+            views.setViewVisibility(R.id.next_shifts, height >= (miniWide ? 144 : 176) ? View.VISIBLE : View.GONE);
+            views.setInt(R.id.next_shifts, "setMaxLines", 1);
+        }
         if (small) {
             views.setInt(R.id.next_shifts, "setMaxLines", 1);
         }
