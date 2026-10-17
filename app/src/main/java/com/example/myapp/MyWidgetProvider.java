@@ -440,24 +440,40 @@ public class MyWidgetProvider extends AppWidgetProvider {
 
     static int layoutFor(float width, float height) {
         if (width < 156 || height < 216) {
-            return width >= 224 && width >= height * 1.2f
+            return width >= 360 && width >= height * 1.2f
                     ? R.layout.widget_layout_mini_wide : R.layout.widget_layout_mini;
         }
-        if (width >= 300 && width >= height * 1.2f) return R.layout.widget_layout_wide;
+        if (width >= 360 && width >= height * 1.2f) return R.layout.widget_layout_wide;
         if (width >= 224 && height >= 320) return R.layout.widget_layout;
+        if (width >= 216) return R.layout.widget_layout_companion;
         return R.layout.widget_layout_small;
+    }
+
+    static boolean showsCompanion(float width, float height) {
+        int layout = layoutFor(width, height);
+        // Reserve a real side region; never fall back to a tiny avatar badge.
+        return layout == R.layout.widget_layout || layout == R.layout.widget_layout_companion
+                || layout == R.layout.widget_layout_wide
+                || (layout == R.layout.widget_layout_mini && width >= 216)
+                || layout == R.layout.widget_layout_mini_wide;
     }
 
     static RemoteViews buildViews(Context context, float width, float height, Calendar now,
             ShiftSlot slot, Calendar anchor, String[] cycle, Map<String, ShiftDef> defs,
             Countdown countdown) {
         int layout = layoutFor(width, height);
-        boolean small = layout == R.layout.widget_layout_small;
+        boolean medium = layout == R.layout.widget_layout_companion;
+        boolean small = medium || layout == R.layout.widget_layout_small;
         boolean wide = layout == R.layout.widget_layout_wide;
         boolean miniWide = layout == R.layout.widget_layout_mini_wide;
         boolean mini = miniWide || layout == R.layout.widget_layout_mini;
         boolean miniShort = mini && !miniWide && height < 128;
+        boolean showCompanion = showsCompanion(width, height);
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
+        // Clear ImageView's resource cache before resolving the host's day/night alias again.
+        views.setImageViewResource(R.id.companion_portrait, 0);
+        views.setImageViewResource(R.id.companion_portrait, R.drawable.widget_companion);
+        views.setViewVisibility(R.id.companion_portrait, showCompanion ? View.VISIBLE : View.GONE);
         boolean previous = dayNumber(now) != dayNumber(slot.day);
         views.setTextViewText(R.id.shift_title, context.getString(previous
                 ? R.string.widget_yesterday_shift : R.string.widget_shift_title));
@@ -474,7 +490,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
                 ? slot.def.startTime + " – " + (isCrossDay(slot.def) ? "次日 " : "") + slot.def.endTime
                 : context.getString(R.string.widget_rest_all_day);
         views.setContentDescription(R.id.shift_time, (previous && work ? "昨日 " : "") + workTime);
-        if (mini && work) {
+        if ((mini || medium || (wide && width < 440)) && work) {
             workTime = (previous ? "昨" : "") + slot.def.startTime + "–"
                     + (isCrossDay(slot.def) ? (previous ? "今" : "次日") : "") + slot.def.endTime;
         } else if (previous && small && work) {
@@ -511,24 +527,35 @@ public class MyWidgetProvider extends AppWidgetProvider {
             views.setChronometer(R.id.countdown_chronometer,
                     SystemClock.elapsedRealtime() + countdown.target - System.currentTimeMillis(), null, true);
         } else {
+            // 复位为正向计时再停住：countDown 是 View 实例上的持久状态，
+            // 若不复位，下一轮切换到倒计时时可能沿用旧的基准而显示异常值。
+            if (Build.VERSION.SDK_INT >= API_CHRONOMETER_COUNTDOWN) {
+                views.setChronometerCountDown(R.id.countdown_chronometer, false);
+            }
             views.setChronometer(R.id.countdown_chronometer, SystemClock.elapsedRealtime(), null, false);
             views.setTextViewText(R.id.countdown_text, countdown.target == 0 ? "—"
                     : formatHms(countdown.target - System.currentTimeMillis()));
         }
         // Bound the effective font size so large system fonts and long hour totals cannot clip.
         float fontScale = context.getResources().getConfiguration().fontScale;
-        float column = miniWide ? (width - 28) / 2 : mini ? width - 42
-                : wide ? (width - 80) / 2 : small ? width - 40 : (width - 60) / 2.25f * 1.25f;
+        float miniWidth = mini && !miniWide && showCompanion
+                ? (width - 18) * 1.8f / 2.8f + 12 : width;
+        float miniColumn = (width - (showCompanion ? 40 : 28)) / (showCompanion ? 2.65f : 2);
+        float column = miniWide ? miniColumn : mini ? miniWidth - 42
+                : wide ? (width - 52) / 2.75f - 20
+                : medium ? (width - 42) / 2.25f * 1.25f
+                : small ? width - 40 : (width - 60) / 2.25f * 1.25f;
         int digits = Math.max(2, String.valueOf(Math.max(0,
                 countdown.target - now.getTimeInMillis()) / 3600000L).length()) + 6;
         float timerSize = Math.min(miniWide ? 22 : miniShort ? 14 : mini ? 16 : small ? 21 : 28, column / (digits * .62f));
         textSize(views, R.id.countdown_chronometer, timerSize / fontScale);
         textSize(views, R.id.countdown_text, timerSize / fontScale);
-        float clockColumn = miniWide ? (width - 28) / 2 : mini ? width - 12
-                : wide ? (width - 60) / 2 : small ? width - 60 : (width - 60) / 2.25f;
+        float clockColumn = miniWide ? miniColumn : mini ? miniWidth - 12
+                : wide ? (width - 52) / 2.75f : medium ? (width - 42) / 2.25f
+                : small ? width - 60 : (width - 60) / 2.25f;
         textSize(views, R.id.live_clock, Math.min(miniShort ? 20 : mini ? 24 : small ? 18 : 30, clockColumn / 4.5f) / fontScale);
-        textSize(views, R.id.shift_name, (miniShort ? 18 : mini ? 22 : small ? (width >= 224 ? 26 : 22) : height >= 380 ? 40 : wide && height < 260 ? 26 : 32) / fontScale);
-        textSize(views, R.id.shift_emoji, (miniWide ? 22 : mini ? 16 : small ? 24 : 32) / fontScale);
+        textSize(views, R.id.shift_name, (miniShort ? 18 : mini ? 22 : small ? (width >= 224 && (!medium || height >= 240) ? 26 : 22) : height >= 440 ? 40 : wide && height < 260 ? 26 : 32) / fontScale);
+        textSize(views, R.id.shift_emoji, (miniWide ? 20 : mini ? 16 : small ? 18 : 20) / fontScale);
         for (int id : new int[]{R.id.today_date, R.id.shift_status, R.id.cycle_info,
                 R.id.next_shifts, R.id.countdown_label}) textSize(views, id, (mini ? 9 : small ? 10 : 11) / fontScale);
         textSize(views, R.id.shift_time, (mini ? 9 : small ? 10 : 12) / fontScale);
@@ -544,10 +571,11 @@ public class MyWidgetProvider extends AppWidgetProvider {
             views.setInt(R.id.next_shifts, "setMaxLines", 1);
         }
         if (small) {
-            views.setInt(R.id.next_shifts, "setMaxLines", 1);
+            views.setInt(R.id.next_shifts, "setMaxLines", medium && height >= 240 ? 2 : 1);
+            if (medium) views.setViewVisibility(R.id.shift_status, height >= 260 ? View.VISIBLE : View.GONE);
         }
         if (layout == R.layout.widget_layout) {
-            boolean showWeek = height >= 380;
+            boolean showWeek = height >= 420;
             views.setViewVisibility(R.id.week_strip, showWeek ? View.VISIBLE : View.GONE);
             if (showWeek) {
                 int[] days = {R.id.week_day_0, R.id.week_day_1, R.id.week_day_2,

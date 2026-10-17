@@ -61,44 +61,66 @@
             android:layout_weight="1"
             android:minHeight="68dp"
             android:orientation="vertical"
-            android:gravity="center_vertical"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="6dp">
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
                 android:baselineAligned="false">
-                <TextView
-                    android:id="@+id/shift_emoji"
-                    style="@style/WidgetText"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:gravity="center"
-                    android:textSize="32sp"
-                    android:background="@drawable/widget_badge"
-                    android:importantForAccessibility="no" />
                 <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="10dp"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/shift_name"
-                        style="@style/WidgetText"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.8"
+                    android:orientation="vertical"
+                    android:gravity="center_vertical">
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="32sp"
-                        android:fontFamily="sans-serif-medium" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:baselineAligned="false">
+                        <TextView
+                            android:id="@+id/shift_emoji"
+                            style="@style/WidgetText"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:gravity="center"
+                            android:ellipsize="none"
+                            android:textSize="20sp"
+                            android:importantForAccessibility="no" />
+                        <TextView
+                            android:id="@+id/shift_name"
+                            style="@style/WidgetText"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:textSize="32sp"
+                            android:fontFamily="sans-serif-medium" />
+                    </LinearLayout>
                     <TextView
                         android:id="@+id/shift_status"
                         style="@style/WidgetLabel"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="3dp" />
+                        android:layout_marginTop="3dp"
+                        android:paddingStart="5dp"
+                        android:paddingEnd="5dp"
+                        android:background="@drawable/widget_companion_note"
+                        android:textColor="@color/widget_accent" />
                 </LinearLayout>
+                <ImageView
+                    android:id="@+id/companion_portrait"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/widget_companion"
+                    android:scaleType="fitCenter"
+                    android:importantForAccessibility="no"
+                    android:focusable="false" />
             </LinearLayout>
             <TextView
                 android:id="@+id/shift_time"

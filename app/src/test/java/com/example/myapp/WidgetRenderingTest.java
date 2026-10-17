@@ -7,10 +7,13 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Chronometer;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.RemoteViews;
@@ -98,11 +101,11 @@ public class WidgetRenderingTest {
             StringBuilder failures = new StringBuilder();
             for (boolean dark : new boolean[]{false, true}) {
                 for (float font : new float[]{1f, 1.3f}) {
-                    for (int[] size : new int[][]{{156,216}, {180,320}, {240,280}, {320,320},
-                            {320,216}, {500,320}, {300,520}, {110,110}, {110,144}, {110,176},
+                    for (int[] size : new int[][]{{156,216}, {180,320}, {215,216}, {216,216}, {224,216}, {240,240}, {240,280}, {280,216}, {320,320},
+                            {320,216}, {300,216}, {359,216}, {360,216}, {360,300}, {500,320}, {300,520}, {224,320}, {224,380}, {320,380}, {224,420}, {320,420}, {224,440}, {110,110}, {110,144}, {110,176},
                             {110,216}, {110,320}, {110,128}, {110,143}, {110,175}, {110,215},
                             {140,110}, {156,110}, {180,110}, {224,110}, {224,144},
-                            {240,215}, {280,180}, {320,110}, {500,110}}) {
+                            {216,110}, {224,128}, {216,144}, {224,176}, {240,215}, {280,180}, {320,110}, {359,110}, {360,110}, {360,144}, {360,215}, {500,110}}) {
                         String variant = size[0] + "x" + size[1] + (dark ? "-dark" : "-light") + "-font" + font;
                         View view = render(activity, size[0], size[1], dark, font);
                         File directory = new File("../.qa/widget-previews");
@@ -114,11 +117,12 @@ public class WidgetRenderingTest {
                         }
                         bitmap.recycle();
                         for (int id : new int[]{R.id.today_date, R.id.shift_name, R.id.shift_emoji, R.id.shift_time,
-                                R.id.cycle_info, R.id.progress_bar, R.id.next_shifts,
+                                R.id.shift_status, R.id.cycle_info, R.id.progress_bar, R.id.next_shifts,
                                 R.id.live_clock, R.id.countdown_label, R.id.countdown_chronometer,
                                 R.id.countdown_detail}) {
                             boolean mini = MyWidgetProvider.layoutFor(size[0], size[1]) == R.layout.widget_layout_mini
                                     || MyWidgetProvider.layoutFor(size[0], size[1]) == R.layout.widget_layout_mini_wide;
+                            if (id == R.id.shift_status && view.findViewById(id).getVisibility() != View.VISIBLE) continue;
                             if ((id == R.id.countdown_detail || (mini && (id == R.id.cycle_info || id == R.id.next_shifts)))
                                     && view.findViewById(id).getVisibility() == View.GONE) continue;
                             try {
@@ -129,10 +133,182 @@ public class WidgetRenderingTest {
                             }
                             catch (AssertionError error) { failures.append(error.getMessage()).append("\n"); }
                         }
+                        try {
+                            assertCompanionPresentation(view, MyWidgetProvider.showsCompanion(size[0], size[1]), variant);
+                        } catch (AssertionError error) { failures.append(error.getMessage()).append("\n"); }
                     }
                 }
             }
             assertEquals(failures.toString(), "", failures.toString());
+        }
+    }
+
+    private Rect bounds(View root, View child) {
+        Rect rectangle = new Rect(0, 0, child.getWidth(), child.getHeight());
+        ((ViewGroup) root).offsetDescendantRectToMyCoords(child, rectangle);
+        return rectangle;
+    }
+
+    private void assertCompanionPresentation(View root, boolean expected, String variant) {
+        ImageView portrait = root.findViewById(R.id.companion_portrait);
+        assertEquals(variant + " portrait visibility", expected ? View.VISIBLE : View.GONE, portrait.getVisibility());
+        if (expected) {
+            assertCompanionIsSeparate(root, variant);
+        } else {
+            float density = root.getResources().getDisplayMetrics().density;
+            assertTrue(variant + " hidden portrait must not reserve a column",
+                    root.findViewById(R.id.shift_time).getWidth() >= root.getWidth() - 32 * density);
+        }
+    }
+
+    private void assertCompanionIsSeparate(View root, String variant) {
+        ImageView portrait = root.findViewById(R.id.companion_portrait);
+        assertWithinBounds(root, R.id.companion_portrait, variant);
+        float density = root.getResources().getDisplayMetrics().density;
+        assertTrue(variant + " must have a real side character, not a tiny avatar",
+                Math.min(portrait.getWidth(), portrait.getHeight()) >= 64 * density);
+        assertNull(variant + " no avatar halo", portrait.getBackground());
+        assertTrue(variant + " missing companion bitmap", portrait.getDrawable() instanceof BitmapDrawable);
+        Bitmap bitmap = ((BitmapDrawable) portrait.getDrawable()).getBitmap();
+        assertTrue("Native companion must stay small", bitmap.getWidth() <= 320 && bitmap.getHeight() <= 320);
+        assertTrue("Preserve transparent background", bitmap.hasAlpha());
+        android.util.TypedValue resolved = new android.util.TypedValue();
+        root.getResources().getValue(R.drawable.widget_companion, resolved, true);
+        boolean dark = (root.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                == Configuration.UI_MODE_NIGHT_YES;
+        assertTrue("Companion must follow the host theme, not the current shift",
+                resolved.string.toString().contains(dark ? "widget_companion_night" : "widget_companion_day"));
+        Rect picture = bounds(root, portrait);
+        for (int id : new int[]{R.id.today_date, R.id.shift_name, R.id.shift_time, R.id.shift_status,
+                R.id.cycle_info, R.id.next_shifts, R.id.live_clock, R.id.countdown_label,
+                R.id.countdown_chronometer, R.id.countdown_text, R.id.countdown_detail}) {
+            View information = root.findViewById(id);
+            if (information.getVisibility() != View.VISIBLE) continue;
+            assertFalse(variant + " companion overlaps " + root.getResources().getResourceEntryName(id),
+                    Rect.intersects(picture, bounds(root, information)));
+        }
+    }
+
+    @Test public void moderatelyWideCardsShowSideCharactersWithoutFullCardHeight() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for (int[] sample : new int[][]{{110,110,0}, {180,320,0}, {215,280,0},
+                    {216,216,1}, {224,216,1}, {240,240,1}, {280,216,1}, {320,216,1},
+                    {215,110,0}, {216,110,1}, {224,110,1}, {320,110,1}, {359,110,1}, {360,110,1}, {500,110,1}}) {
+                View view = render(controller.get(), sample[0], sample[1], false, 1.3f);
+                assertCompanionPresentation(view, sample[2] == 1, sample[0] + "x" + sample[1]);
+            }
+        }
+    }
+
+    @Test public void resizingTheSameMiniViewReclaimsTheHiddenCharacterColumn() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Activity activity = controller.get();
+            Calendar now = Calendar.getInstance();
+            Calendar anchor = MyWidgetProvider.debugMidnight(now);
+            String[] cycle = {"白班"};
+            Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
+            MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
+            FrameLayout surface = new FrameLayout(activity);
+            activity.setContentView(surface);
+            View view = null;
+            for (int width : new int[]{215, 216, 320, 110, 224, 180}) {
+                RemoteViews remote = MyWidgetProvider.buildViews(activity, width, 110, now, slot, anchor,
+                        cycle, defs, MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs));
+                if (view == null) {
+                    view = remote.apply(activity, surface);
+                    surface.addView(view);
+                } else {
+                    remote.reapply(activity, view);
+                }
+                surface.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(110, View.MeasureSpec.EXACTLY));
+                surface.layout(0, 0, width, 110);
+                assertCompanionPresentation(view, width >= 216, "resize " + width);
+                for (int id : new int[]{R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
+                    assertWithinBounds(view, id, "resize " + width);
+                    assertWholeText(view, id, "resize " + width);
+                }
+            }
+        }
+    }
+
+    @Test public void oneRemoteViewsPayloadResolvesEitherHostThemeAndRepairsAStalePortrait() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Activity activity = controller.get();
+            Calendar now = Calendar.getInstance();
+            Calendar anchor = MyWidgetProvider.debugMidnight(now);
+            String[] cycle = {"夜班"};
+            Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
+            MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
+            RemoteViews remote = MyWidgetProvider.buildViews(activity, 320, 320, now, slot, anchor,
+                    cycle, defs, MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs));
+            for (boolean dark : new boolean[]{false, true, false}) {
+                Configuration config = new Configuration(activity.getResources().getConfiguration());
+                config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                        | (dark ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
+                Context host = activity.createConfigurationContext(config);
+                FrameLayout surface = new FrameLayout(host);
+                View view = remote.apply(host, surface);
+                ImageView image = view.findViewById(R.id.companion_portrait);
+                Bitmap expected = ((BitmapDrawable) host.getDrawable(dark
+                        ? R.drawable.widget_companion_night : R.drawable.widget_companion_day)).getBitmap();
+                assertTrue("Host theme wins over provider theme", expected.sameAs(((BitmapDrawable) image.getDrawable()).getBitmap()));
+                image.setImageResource(dark ? R.drawable.widget_companion_day : R.drawable.widget_companion_night);
+                remote.reapply(host, view);
+                assertTrue("Reapply must not retain the old avatar", expected.sameAs(((BitmapDrawable) image.getDrawable()).getBitmap()));
+            }
+        }
+    }
+
+    @Test @Config(qualifiers = "zh-rCN-xhdpi")
+    public void phoneDensityCompanionsRenderWithWorkingAndOvernightShifts() throws Exception {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Activity activity = controller.get();
+            Bitmap[] samples = new Bitmap[2];
+            for (boolean dark : new boolean[]{false, true}) {
+                Configuration config = new Configuration(activity.getResources().getConfiguration());
+                config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                        | (dark ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
+                config.fontScale = 1.3f;
+                Context context = activity.createConfigurationContext(config);
+                Calendar now = Calendar.getInstance();
+                Calendar anchor = MyWidgetProvider.debugMidnight(now);
+                for (String shift : new String[]{"白班", "夜班"}) {
+                    for (int[] size : new int[][]{{110,110}, {156,216}, {216,110}, {224,144}, {240,180}, {216,216}, {224,216}, {240,240}, {280,216}, {320,216}, {360,110}, {360,216}, {224,320}, {320,320}, {500,320}}) {
+                        View view = render(activity, context, size[0], size[1], now, anchor,
+                                new String[]{shift}, MyWidgetProvider.debugDefaultDefs());
+                        assertCompanionPresentation(view, MyWidgetProvider.showsCompanion(size[0], size[1]), "working phone density");
+                        for (int id : new int[]{R.id.shift_name, R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
+                            assertWithinBounds(view, id, "working phone density");
+                        }
+                        for (int id : new int[]{R.id.shift_name, R.id.live_clock, R.id.countdown_chronometer}) {
+                            assertWholeText(view, id, "working phone density");
+                        }
+                        File directory = new File("../.qa/widget-previews");
+                        directory.mkdirs();
+                        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+                        view.draw(new Canvas(bitmap));
+                        String name = "companion-" + size[0] + "x" + size[1] + (dark ? "-dark-" : "-light-") + shift + ".png";
+                        try (FileOutputStream out = new FileOutputStream(new File(directory, name))) {
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                        }
+                        if (size[0] == 240 && size[1] == 240 && "白班".equals(shift)) {
+                            samples[dark ? 1 : 0] = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+                        }
+                        bitmap.recycle();
+                    }
+                }
+            }
+            Bitmap comparison = Bitmap.createBitmap(samples[0].getWidth() * 2 + 24,
+                    samples[0].getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(comparison);
+            canvas.drawBitmap(samples[0], 0, 0, null);
+            canvas.drawBitmap(samples[1], samples[0].getWidth() + 24, 0, null);
+            try (FileOutputStream out = new FileOutputStream("../.qa/widget-previews/companion-width-led-themes.png")) {
+                comparison.compress(Bitmap.CompressFormat.PNG, 100, out);
+            }
+            comparison.recycle();
+            for (Bitmap sample : samples) sample.recycle();
         }
     }
 
@@ -153,12 +329,12 @@ public class WidgetRenderingTest {
             Calendar anchor = MyWidgetProvider.debugMidnight(now);
             Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
             MyWidgetProvider.ShiftDef night = defs.get("夜班");
-            for (int[] size : new int[][]{{110,110}, {224,110}}) {
+            for (int[] size : new int[][]{{110,110}, {224,110}, {216,216}, {240,240}, {320,216}, {360,110}, {360,216}, {500,320}}) {
                 night.startTime = "00:00";
                 night.endTime = "23:59";
                 night.crossDay = true;
                 View view = render(activity, activity, size[0], size[1], now, anchor, new String[]{"夜班"}, defs);
-                assertTrue(((TextView) view.findViewById(R.id.shift_time)).getText().toString().startsWith("昨00:00–今23:59"));
+                assertTrue(((TextView) view.findViewById(R.id.shift_time)).getContentDescription().toString().startsWith("昨日 "));
                 for (int id : new int[]{R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
                     assertWithinBounds(view, id, "overnight");
                     assertWholeText(view, id, "overnight");

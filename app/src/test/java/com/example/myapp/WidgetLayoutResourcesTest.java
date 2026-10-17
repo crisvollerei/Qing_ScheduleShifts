@@ -69,6 +69,7 @@ public class WidgetLayoutResourcesTest {
     @Test
     public void compactLayoutUsesOnlyRemoteViewsCompatibleWidgets() throws Exception {
         assertOnlyRemoteViews("widget_layout_small.xml");
+        assertOnlyRemoteViews("widget_layout_companion.xml");
     }
 
     @Test
@@ -101,7 +102,7 @@ public class WidgetLayoutResourcesTest {
         assertFalse(ALLOWED.contains("Space"));
     }
     @Test public void everySizeKeepsAllRequiredInformationAndNativeSecondTicks() throws Exception {
-        for (String layout : Arrays.asList("widget_layout.xml", "widget_layout_small.xml", "widget_layout_wide.xml",
+        for (String layout : Arrays.asList("widget_layout.xml", "widget_layout_small.xml", "widget_layout_companion.xml", "widget_layout_wide.xml",
                 "widget_layout_mini.xml", "widget_layout_mini_wide.xml")) {
             Document document = parse(layout);
             Set<String> ids = new HashSet<>();
@@ -119,7 +120,7 @@ public class WidgetLayoutResourcesTest {
             for (String id : Arrays.asList("shift_title", "today_date", "shift_name", "shift_emoji",
                     "shift_time", "shift_status", "cycle_info", "progress_bar", "next_shifts",
                     "live_clock", "countdown_label", "countdown_chronometer", "countdown_text",
-                    "countdown_detail", "refresh_button")) {
+                    "countdown_detail", "refresh_button", "companion_portrait")) {
                 assertTrue(layout + " missing " + id, ids.contains("@+id/" + id));
             }
         }

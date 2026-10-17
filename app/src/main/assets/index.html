@@ -17,10 +17,10 @@
     })();
   </script>
   <link rel="icon" href="avatar.png">
-  <link rel="stylesheet" href="assets/styles.css"><link rel="stylesheet" href="assets/themes.css"><link rel="stylesheet" href="assets/festivals.css">
+  <link rel="stylesheet" href="assets/styles.css?v=static-input-20261017"><link rel="stylesheet" href="assets/themes.css?v=static-input-20261017"><link rel="stylesheet" href="assets/festivals.css"><link rel="stylesheet" href="assets/companion.css">
   <script src="assets/schedule-core.js" defer=""></script>
   <script src="assets/calendar-data.js" defer=""></script>
-  <script src="assets/app.js" defer=""></script>
+  <script src="assets/app.js?v=static-input-20261017" defer=""></script>
 </head>
 <body><div class="world-ornaments" aria-hidden="true"><svg class="world-wing ornament-day" viewBox="0 0 300 120" focusable="false"><use href="#silver-wings"></use></svg><svg class="world-tide ornament-night" viewBox="0 0 640 100" preserveAspectRatio="none" focusable="false"><use href="#night-tide"></use></svg><svg class="world-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div><svg class="theme-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
   <defs>
@@ -186,6 +186,18 @@
       </section>
 
       <div class="workspace-grid">
+        <section class="companion" id="companion" aria-label="排班小陪伴" hidden>
+          <div class="companion-bubble" id="companionBubble">
+            <p class="companion-heading"><span class="companion-sigil" aria-hidden="true">◇</span><span id="companionName">大肥龙</span><span class="companion-heading-note">的一点碎碎念</span></p>
+            <p class="companion-message" id="companionMessage"></p>
+          </div>
+          <button class="companion-character" id="companionCharacter" type="button" aria-label="戳戳大肥龙，换一句话" aria-describedby="companionMessage" title="戳戳我，换一句话">
+            <span class="companion-portrait"><img id="companionDay" src="assets/chibi-day.png" alt="" width="1052" height="1052" decoding="async"><img id="companionNight" src="assets/chibi-night.png" alt="" width="610" height="610" decoding="async" hidden></span>
+            <span class="companion-spark companion-spark-one" aria-hidden="true">✧</span><span class="companion-spark companion-spark-two" aria-hidden="true">✦</span>
+          </button>
+          <div class="companion-foot"><span class="companion-hint">戳戳我 · 换一句</span><button class="companion-toggle" id="companionToggle" type="button" aria-controls="companionBubble" aria-expanded="true" aria-label="收起碎碎念">收起 <span aria-hidden="true">⌃</span></button></div>
+          <span class="companion-announcement" id="companionAnnouncement" role="status" aria-live="polite" aria-atomic="true"></span>
+        </section>
         <section class="calendar-section panel enter-stage" id="calendarSection" aria-label="月度排班日历"><div class="theme-frame" aria-hidden="true"><span class="frame-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><svg class="frame-pendant ornament-day" viewBox="0 0 40 64" focusable="false"><use href="#silver-pendant"></use></svg><svg class="frame-tail ornament-night" viewBox="0 0 64 64" focusable="false"><use href="#night-tail"></use></svg></div>
           <div class="calendar-heading"><div><p class="eyebrow calendar-eyebrow">月度安排 <span class="heading-rule"></span></p><div class="month-navigation"><button class="month-title" id="monthTitle" onclick="openPicker()" aria-haspopup="dialog" title="选择年月"></button><div class="month-arrows"><button class="nav-btn" id="prevBtn" onclick="prevMonth()" aria-label="上个月">‹</button><button class="nav-btn" id="nextBtn" onclick="nextMonth()" aria-label="下个月">›</button></div></div></div><div class="calendar-actions"><span class="month-meta" id="monthMeta"></span><button class="button today-button" id="backToToday" title="回到今天 · T"><span class="today-button-dot" aria-hidden="true"></span> 今天</button></div></div>
           <div class="calendar-subhead"><div class="legend" id="legendContainer" aria-label="班次图例"></div><span class="calendar-tip">留一点时间，给自己。</span></div>
@@ -208,6 +220,15 @@
 
   <div class="picker-overlay" id="pickerModal" hidden=""><section class="picker-content" role="dialog" aria-modal="true" aria-labelledby="pickerTitle" tabindex="-1"><h2 id="pickerTitle">选择年月</h2><div class="picker-year-row"><button class="icon-btn" id="pickerPrev" onclick="pickerPrevYear()" aria-label="上一年">‹</button><strong id="pickerYearLabel"></strong><button class="icon-btn" id="pickerNext" onclick="pickerNextYear()" aria-label="下一年">›</button></div><div class="picker-months" id="pickerMonths"></div><button class="button button-secondary picker-close" onclick="closePicker()">关闭</button></section></div>
   <div class="modal" id="settingsModal" hidden=""><section class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1"><div class="modal-header"><div><p class="eyebrow">每个人，都有自己的节奏</p><h2 id="settingsTitle">排班设置</h2></div><button class="icon-btn" onclick="closeSettings()" aria-label="关闭排班设置">×</button></div><p class="form-description">设置一个起始日期和重复周期，其余交给日历。</p><div class="form-group"><label for="anchorDate">周期起始日期</label><input type="date" id="anchorDate" min="1900-01-01" max="2100-12-31"><small>这一天对应周期中的第一个班次。</small></div><div class="form-group"><label for="cyclePattern">周期顺序</label><textarea id="cyclePattern" rows="3" placeholder="白班 夜班 休息 白班 夜班 休息 休息 休息" aria-describedby="cycleHint"></textarea><small id="cycleHint">用空格分隔班次名称，周期会按顺序循环。每个名称最多 40 个字符。</small></div><div class="settings-section-heading"><h3>班次与时间</h3><button class="button button-secondary button-small" onclick="addShiftDef()">＋ 添加班次</button></div><div id="shiftDefsEditor"></div><p class="form-note">下班时间早于或等于上班时间时，自动视为次日下班；也可手动勾选跨日。</p><p class="form-error" id="settingsError" role="alert" hidden=""></p><div class="btn-group"><button class="button button-secondary" onclick="closeSettings()">取消</button><button class="button button-primary" onclick="saveSettings()">保存设置</button></div></section></div>
+  <div class="modal" id="presetModal" hidden>
+    <form class="modal-content preset-content" id="presetForm" role="dialog" aria-modal="true" aria-labelledby="presetTitle" aria-describedby="presetDescription" tabindex="-1" novalidate>
+      <div class="modal-header"><div><p class="eyebrow">把合适的节奏留存下来</p><h2 id="presetTitle">保存排班方案</h2></div><button class="icon-btn" type="button" onclick="closePresetDialog()" aria-label="关闭保存方案">×</button></div>
+      <p class="form-description" id="presetDescription">为当前排班起个名字，下次就能直接切换。</p>
+      <div class="form-group"><label for="presetName">方案名称</label><input id="presetName" name="presetName" type="text" maxlength="40" required autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="例如：日常轮班、临时排班" aria-describedby="presetNameHint presetError"><small id="presetNameHint">最多 40 个字符，不能与已有方案重名。</small></div>
+      <p class="form-error" id="presetError" role="alert" hidden></p>
+      <div class="btn-group"><button class="button button-secondary" type="button" onclick="closePresetDialog()">取消</button><button class="button button-primary" id="presetSubmit" type="submit">保存方案</button></div>
+    </form>
+  </div>
   <div class="toast" id="toast" role="status" hidden=""></div><noscript><p class="noscript">请启用 JavaScript 以使用排班日历。</p></noscript>
 
 

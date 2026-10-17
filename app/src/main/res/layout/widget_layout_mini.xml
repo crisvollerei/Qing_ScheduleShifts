@@ -16,41 +16,120 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="6dp">
+        android:orientation="horizontal"
+        android:padding="6dp"
+        android:baselineAligned="false">
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="14dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:baselineAligned="false">
-            <TextView
-                android:id="@+id/today_date"
-                style="@style/WidgetLabel"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="9sp" />
-            <ImageView
-                android:id="@+id/refresh_button"
-                android:layout_width="14dp"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.8"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="14dp"
-                android:padding="2dp"
-                android:src="@drawable/widget_refresh"
-                android:contentDescription="@string/widget_refresh" />
-        </LinearLayout>
-        <TextView
-            android:id="@+id/shift_title"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_vertical">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+                <TextView
+                    android:id="@+id/today_date"
+                    style="@style/WidgetLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="9sp" />
+                <ImageView
+                    android:id="@+id/refresh_button"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:padding="2dp"
+                    android:src="@drawable/widget_refresh"
+                    android:contentDescription="@string/widget_refresh" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/shift_title"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_vertical">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:baselineAligned="false">
+                    <TextView
+                        android:id="@+id/shift_emoji"
+                        style="@style/WidgetText"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:gravity="center"
+                        android:ellipsize="none"
+                        android:textSize="16sp"
+                        android:importantForAccessibility="no" />
+                    <TextView
+                        android:id="@+id/shift_name"
+                        style="@style/WidgetText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="3dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="18sp" />
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/shift_status"
+                    style="@style/WidgetLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/shift_time"
+                    style="@style/WidgetText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="9sp" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/cycle_info"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="9sp"
+                android:visibility="gone" />
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginTop="1dp"
+                android:layout_marginBottom="0dp"
+                android:minHeight="0dp"
+                android:maxHeight="2dp"
+                android:progressDrawable="@drawable/progress_bar"
+                android:indeterminate="false" />
+            <TextView
+                android:id="@+id/next_shifts"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textSize="9sp"
+                android:visibility="gone" />
+            <TextClock
+                android:id="@+id/live_clock"
+                style="@style/WidgetTimer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:format12Hour="HH:mm:ss"
+                android:format24Hour="HH:mm:ss"
+                android:textColor="@color/widget_ink"
+                android:textSize="20sp" />
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -58,110 +137,49 @@
                 android:gravity="center_vertical"
                 android:baselineAligned="false">
                 <TextView
-                    android:id="@+id/shift_emoji"
-                    style="@style/WidgetText"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:ellipsize="none"
-                    android:importantForAccessibility="no" />
-                <TextView
-                    android:id="@+id/shift_name"
-                    style="@style/WidgetText"
+                    android:id="@+id/countdown_label"
+                    style="@style/WidgetLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="3dp"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="9sp" />
+                <Chronometer
+                    android:id="@+id/countdown_chronometer"
+                    style="@style/WidgetTimer"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="3dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:textSize="18sp" />
+                    android:gravity="end"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/countdown_text"
+                    style="@style/WidgetTimer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:textSize="14sp" />
             </LinearLayout>
             <TextView
-                android:id="@+id/shift_status"
+                android:id="@+id/countdown_detail"
                 style="@style/WidgetLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:textSize="9sp"
                 android:visibility="gone" />
-            <TextView
-                android:id="@+id/shift_time"
-                style="@style/WidgetText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="9sp" />
         </LinearLayout>
-        <TextView
-            android:id="@+id/cycle_info"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="9sp"
-            android:visibility="gone" />
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            style="@android:style/Widget.ProgressBar.Horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginTop="1dp"
-            android:layout_marginBottom="0dp"
-            android:minHeight="0dp"
-            android:maxHeight="2dp"
-            android:progressDrawable="@drawable/progress_bar"
-            android:indeterminate="false" />
-        <TextView
-            android:id="@+id/next_shifts"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:textSize="9sp"
-            android:visibility="gone" />
-        <TextClock
-            android:id="@+id/live_clock"
-            style="@style/WidgetTimer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:format12Hour="HH:mm:ss"
-            android:format24Hour="HH:mm:ss"
-            android:textColor="@color/widget_ink"
-            android:textSize="20sp" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:baselineAligned="false">
-            <TextView
-                android:id="@+id/countdown_label"
-                style="@style/WidgetLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="3dp"
-                android:textColor="@color/widget_accent"
-                android:textSize="9sp" />
-            <Chronometer
-                android:id="@+id/countdown_chronometer"
-                style="@style/WidgetTimer"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textSize="14sp"
-                android:visibility="gone" />
-            <TextView
-                android:id="@+id/countdown_text"
-                style="@style/WidgetTimer"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textSize="14sp" />
-        </LinearLayout>
-        <TextView
-            android:id="@+id/countdown_detail"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="9sp"
-            android:visibility="gone" />
+        <ImageView
+            android:id="@+id/companion_portrait"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:visibility="gone"
+            android:src="@drawable/widget_companion"
+            android:scaleType="fitCenter"
+            android:importantForAccessibility="no"
+            android:focusable="false" />
     </LinearLayout>
 </FrameLayout>

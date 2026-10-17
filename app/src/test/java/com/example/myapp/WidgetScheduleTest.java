@@ -270,4 +270,35 @@ public class WidgetScheduleTest {
         }
     }
 
+
+    /**
+     * 倒计时数值必须落在「一个周期之内」的合理范围。
+     *
+     * 这类异常曾真实出现过：某台手机的小部件显示「距上班 491:47:51」，
+     * 而同一屏的「白班 2天」是正确的——说明显示的数值与目标时刻脱节，
+     * 变成了某个与班次无关的量（当时是系统单调时钟异常，重启后恢复）。
+     *
+     * 断言不关心由哪个控件渲染，只检查数值本身是否合理，
+     * 因此不会限制具体实现方式。
+     */
+    @Test public void countdownNeverExceedsOneCycle() {
+        for (int day = 0; day < 30; day++) {
+            for (int hour : new int[]{0, 8, 13, 20, 23}) {
+                Calendar now = at(2026, 4, 18, hour, 0);
+                now.add(Calendar.DAY_OF_YEAR, day);
+                MyWidgetProvider.ShiftSlot slot =
+                        MyWidgetProvider.debugEffectiveSlot(now, anchor(), CYCLE, defs());
+                MyWidgetProvider.Countdown countdown =
+                        MyWidgetProvider.countdownAt(now, slot, anchor(), CYCLE, defs());
+                if (countdown.target == 0) continue;   // 全休息周期没有倒计时
+
+                long remaining = countdown.target - now.getTimeInMillis();
+                long cycleMillis = CYCLE.length * 24L * 3600_000L;
+                assertTrue("倒计时不得为负：" + remaining, remaining >= 0);
+                assertTrue("倒计时超出周期量级：remaining=" + remaining
+                                + "ms（上限 " + cycleMillis + "ms）",
+                        remaining <= cycleMillis);
+            }
+        }
+    }
 }

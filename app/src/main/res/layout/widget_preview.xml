@@ -64,10 +64,10 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:gravity="center"
-                    android:textSize="16sp"
                     android:ellipsize="none"
-                    android:importantForAccessibility="no"
-                android:text="☀️" />
+                    android:textSize="16sp"
+                    android:text="&#x2600;&#xFE0F;"
+                    android:importantForAccessibility="no" />
                 <TextView
                     android:id="@+id/shift_name"
                     style="@style/WidgetText"
@@ -170,4 +170,10 @@
             android:textSize="9sp"
             android:visibility="gone" />
     </LinearLayout>
+    <ImageView
+        android:id="@+id/companion_portrait"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
 </FrameLayout>

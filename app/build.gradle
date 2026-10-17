@@ -5,7 +5,7 @@ plugins {
 // 版本号集中在此处维护。
 // versionCode 必须严格递增，否则覆盖安装会被系统拒绝（INSTALL_FAILED_VERSION_DOWNGRADE）；
 // versionName 是展示给用户的版本，可与 code 不必一一对应。
-def appVersionCode = 7
+def appVersionCode = 13
 def appVersionName = "0.2.1"
 
 // 签名凭据从本机 local.properties 或环境变量读取，避免密钥口令进入版本库。
@@ -24,7 +24,38 @@ if (!hasReleaseSigning) {
     logger.lifecycle("未配置发布签名（local.properties / 环境变量 RELEASE_*），Release APK 将以未签名方式产出。")
 }
 
+// Derive lightweight native stickers from the web originals, keeping one source of truth.
+def widgetCompanionRes = layout.buildDirectory.dir("generated/res/widgetCompanions")
+def generateWidgetCompanions = tasks.register("generateWidgetCompanions") {
+    inputs.files("src/main/assets/assets/chibi-day.png", "src/main/assets/assets/chibi-night.png")
+    inputs.property("maxEdge", 320)
+    outputs.dir(widgetCompanionRes)
+    doLast {
+        def directory = new File(widgetCompanionRes.get().asFile, "drawable-nodpi")
+        directory.mkdirs()
+        ["day", "night"].each { theme ->
+            def source = javax.imageio.ImageIO.read(file("src/main/assets/assets/chibi-" + theme + ".png"))
+            if (source == null) throw new GradleException("Invalid companion PNG: " + theme)
+            double scale = Math.min(1d, 320d / Math.max(source.width, source.height))
+            def image = new java.awt.image.BufferedImage(
+                    Math.max(1, (int) Math.round(source.width * scale)),
+                    Math.max(1, (int) Math.round(source.height * scale)),
+                    java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            def graphics = image.createGraphics()
+            try {
+                graphics.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                        java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+                graphics.drawImage(source, 0, 0, image.width, image.height, null)
+            } finally {
+                graphics.dispose()
+            }
+            javax.imageio.ImageIO.write(image, "png", new File(directory, "widget_companion_" + theme + ".png"))
+        }
+    }
+}
+
 android {
+    sourceSets.main.res.srcDir(widgetCompanionRes)
     namespace 'com.example.myapp'
     compileSdk 34
 
@@ -82,6 +113,8 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 }
+
+tasks.named("preBuild").configure { dependsOn(generateWidgetCompanions) }
 
 // 便捷任务：一次性编译所有变体的单元测试源码。
 // 原实现引用了不存在的 compileDebugUnitTestSources，任务无法解析；此处指向真实的变体任务。

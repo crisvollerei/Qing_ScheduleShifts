@@ -54,7 +54,8 @@
                         android:layout_width="28dp"
                         android:layout_height="28dp"
                         android:gravity="center"
-                        android:textSize="22sp"
+                        android:ellipsize="none"
+                        android:textSize="20sp"
                         android:importantForAccessibility="no" />
                     <TextView
                         android:id="@+id/shift_name"
@@ -150,6 +151,17 @@
                 android:textSize="9sp"
                 android:visibility="gone" />
         </LinearLayout>
+        <ImageView
+            android:id="@+id/companion_portrait"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.65"
+            android:layout_marginStart="12dp"
+            android:visibility="gone"
+            android:src="@drawable/widget_companion"
+            android:scaleType="fitCenter"
+            android:importantForAccessibility="no"
+            android:focusable="false" />
     </LinearLayout>
     <ImageView
         android:id="@+id/refresh_button"

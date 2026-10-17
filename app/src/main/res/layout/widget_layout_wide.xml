@@ -71,11 +71,11 @@
                     <TextView
                         android:id="@+id/shift_emoji"
                         style="@style/WidgetText"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
                         android:gravity="center"
-                        android:textSize="32sp"
-                        android:background="@drawable/widget_badge"
+                        android:ellipsize="none"
+                        android:textSize="20sp"
                         android:importantForAccessibility="no" />
                     <LinearLayout
                         android:layout_width="0dp"
@@ -133,6 +133,16 @@
                 android:maxLines="2"
                 android:layout_marginTop="7dp" />
         </LinearLayout>
+        <ImageView
+            android:id="@+id/companion_portrait"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.7"
+            android:layout_marginStart="12dp"
+            android:src="@drawable/widget_companion"
+            android:scaleType="fitCenter"
+            android:importantForAccessibility="no"
+            android:focusable="false" />
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
