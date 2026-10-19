@@ -255,11 +255,10 @@ public class MainActivity extends AppCompatActivity {
             refreshWidgets();
         }
 
-        /** 设置变更后立即重绘小部件，并重置分钟对齐的刷新闹钟。 */
+        /** Settings changes refresh all four widget compositions through their shared provider. */
         private void refreshWidgets() {
             try {
-                AppWidgetManager manager = AppWidgetManager.getInstance(context);
-                int[] ids = manager.getAppWidgetIds(new ComponentName(context, MyWidgetProvider.class));
+                int[] ids = MyWidgetProvider.widgetIds(context);
                 if (ids != null && ids.length > 0) {
                     context.sendBroadcast(new Intent(context, MyWidgetProvider.class)
                             .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)

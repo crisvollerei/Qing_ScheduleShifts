@@ -63,7 +63,9 @@ public class WidgetRefreshTest {
         long now = System.currentTimeMillis();
         long boundary = now + 123_000;
         WidgetRefresh.schedule(context, boundary);
+        long beforeRetry = System.currentTimeMillis();
         WidgetRefresh.scheduleRecovery(context);
+        long afterRetry = System.currentTimeMillis();
         assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
         ShadowAlarmManager.ScheduledAlarm retry = Shadows.shadowOf(alarms).getScheduledAlarms().stream()
                 .filter(alarm -> WidgetRefresh.ACTION_RECOVER.equals(
@@ -73,7 +75,8 @@ public class WidgetRefreshTest {
         assertFalse(retry.allowWhileIdle);
         assertEquals(0, retry.interval);
         assertEquals(0, retry.getWindowLengthMs());
-        assertEquals(now + WidgetRefresh.RECOVERY_INTERVAL_MS, retry.triggerAtTime);
+        assertTrue(retry.triggerAtTime >= beforeRetry + WidgetRefresh.RECOVERY_INTERVAL_MS);
+        assertTrue(retry.triggerAtTime <= afterRetry + WidgetRefresh.RECOVERY_INTERVAL_MS);
         assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().stream()
                 .anyMatch(alarm -> alarm.triggerAtTime == boundary && alarm.type == AlarmManager.RTC_WAKEUP));
     }
@@ -97,7 +100,7 @@ public class WidgetRefreshTest {
         Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
         Shadows.shadowOf((PowerManager) context.getSystemService(Context.POWER_SERVICE)).setIsInteractive(true);
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
         ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
                 .setText("stale countdown");
         ShadowAlarmManager.ScheduledAlarm retry = recoveryAlarm();
@@ -112,7 +115,7 @@ public class WidgetRefreshTest {
     @Test public void recoveryWhileScreenIsOffKeepsARetryWithoutRedrawingWidgets() throws Exception {
         Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
         ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
                 .setText("screen off");
         Shadows.shadowOf((PowerManager) context.getSystemService(Context.POWER_SERVICE)).setIsInteractive(false);
@@ -125,17 +128,52 @@ public class WidgetRefreshTest {
         assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
     }
 
-    @Test public void manualRefreshDoesNotWaitForTheLastAnimationAlarm() {
+    @Test public void manualRefreshAcknowledgesWithoutEnqueuingAnimationAlarms() {
         Shadows.shadowOf(alarms).setCanScheduleExactAlarms(false);
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
         ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
                 .setText("stale countdown");
         new MyWidgetProvider().onReceive(context, new Intent(context, MyWidgetProvider.class)
-                .setAction(WidgetRefresh.ACTION_SPIN_START));
+                .setAction(WidgetRefresh.ACTION_REFRESH));
         assertNotEquals("stale countdown", ((TextView) Shadows.shadowOf(manager).getViewFor(id)
                 .findViewById(R.id.countdown_label)).getText().toString());
-        assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().size() > 3);
+        assertEquals("小组件已刷新", org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+    }
+
+    @Test @Config(sdk = {28, 34}, application = android.app.Application.class)
+    public void obsoleteAnimationFramesCannotMutateTheLayoutOnAnyHost() {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
+        android.view.View root = Shadows.shadowOf(manager).getViewFor(id);
+        int alarmCount = Shadows.shadowOf(alarms).getScheduledAlarms().size();
+        // Ignore animation broadcasts left behind by an older app version as well.
+        new MyWidgetProvider().onReceive(context, new Intent(context, MyWidgetProvider.class)
+                .setAction(WidgetRefresh.ACTION_SPIN).putExtra("frame", 1));
+        assertSame(root, Shadows.shadowOf(manager).getViewFor(id));
+        assertEquals(alarmCount, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+    }
+
+    @Test public void oldInstalledWidgetClicksStillRefreshAndCancelQueuedSpinFrames() {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
+        for (int frame = 0; frame < 9; frame++) {
+            android.app.PendingIntent oldFrame = android.app.PendingIntent.getBroadcast(context, 2000 + frame,
+                    new Intent(context, MyWidgetProvider.class).setAction(WidgetRefresh.ACTION_SPIN)
+                            .putExtra("frame", frame),
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+            alarms.set(AlarmManager.RTC, System.currentTimeMillis() + 10000 + frame, oldFrame);
+        }
+        assertEquals(12, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+        ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
+                .setText("old installation");
+        new MyWidgetProvider().onReceive(context, new Intent(context, MyWidgetProvider.class)
+                .setAction(WidgetRefresh.ACTION_SPIN_START));
+        assertNotEquals("old installation", ((TextView) Shadows.shadowOf(manager).getViewFor(id)
+                .findViewById(R.id.countdown_label)).getText().toString());
+        assertEquals("小组件已刷新", org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
     }
 
     private ShadowAlarmManager.ScheduledAlarm recoveryAlarm() {

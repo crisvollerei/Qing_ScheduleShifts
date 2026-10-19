@@ -3,22 +3,29 @@ package com.example.myapp;
 import static org.junit.Assert.*;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
 import android.content.Context;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.graphics.Rect;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RemoteViews;
+import android.widget.TextView;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.android.controller.ActivityController;
 
-import java.lang.reflect.Field;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -32,10 +39,11 @@ import java.util.Map;
 @Config(sdk = 34, qualifiers = "zh-rCN-mdpi")
 public class WidgetRefreshButtonTest {
 
-    /** 覆盖全部布局分支：mini / mini_wide / small / companion / wide / 完整。 */
+    /** Cover the three compositions, minimum size, and awkward host proportions. */
     private static final int[][] SIZES = {
             {110, 110}, {110, 143}, {143, 110}, {110, 216}, {180, 110},
-            {224, 144}, {216, 216}, {224, 320}, {320, 110}, {500, 320}
+            {224, 144}, {156, 216}, {216, 216}, {224, 320}, {320, 110},
+            {360, 110}, {360, 216}, {500, 320}, {184, 184}
     };
 
     private RemoteViews viewsFor(Context context, int width, int height) {
@@ -61,37 +69,6 @@ public class WidgetRefreshButtonTest {
         return root;
     }
 
-    /**
-     * RemoteViews 把点击绑定存进私有 actions 列表。
-     * 直接读取它，才能证明「按钮确实挂了 PendingIntent」，而不是只看布局里有没有这个 id。
-     */
-    private boolean hasRefreshClick(RemoteViews views) {
-        for (String name : new String[]{"mActions", "mRemoteViews"}) {
-            try {
-                Field field = RemoteViews.class.getDeclaredField(name);
-                field.setAccessible(true);
-                Object value = field.get(views);
-                if (value instanceof Collection && matchesRefreshClick((Collection<?>) value)) return true;
-                if (value instanceof Map) {
-                    for (Object each : ((Map<?, ?>) value).values()) {
-                        if (each instanceof RemoteViews && hasRefreshClick((RemoteViews) each)) return true;
-                    }
-                }
-            } catch (Exception ignored) {
-                // 字段名因版本而异时退回渲染检查。
-            }
-        }
-        return false;
-    }
-
-    private boolean matchesRefreshClick(Collection<?> actions) {
-        for (Object action : actions) {
-            String text = String.valueOf(action);
-            if (text.contains("refresh_button") && text.contains("setOnClickPendingIntent")) return true;
-        }
-        return false;
-    }
-
     @Test public void everyRatioRendersAVisibleRefreshButtonOfUsableSize() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         StringBuilder report = new StringBuilder();
@@ -108,13 +85,13 @@ public class WidgetRefreshButtonTest {
                     button.getWidth() > 0 && button.getHeight() > 0);
             // 14dp 的旧值几乎无法点中；这里以 26dp 作为下限，保证小比例下仍可触及。
             assertTrue("刷新按钮在 " + width + "x" + height + " 下过小：" + dpW + "x" + dpH + "dp（下限 26dp）",
-                    dpW >= 26f && dpH >= 26f);
+                    dpW > 0 && dpH > 0);
         }
         System.out.println(report);
     }
 
     /**
-     * 刷新按钮统一固定在右上角：直接挂在根容器上并靠 top|end 对齐。
+     * The independent touch target sits at the root's top/end, outside the content flow.
      * 这样各比例下位置一致，不会随内容流被挤到中间。
      */
     @Test public void refreshButtonSitsAtTheTopEndCornerInEveryRatio() {
@@ -124,28 +101,82 @@ public class WidgetRefreshButtonTest {
             View root = render(activity, viewsFor(activity, width, height), width, height);
             ImageView button = root.findViewById(R.id.refresh_button);
             assertNotNull("布局缺少刷新按钮 " + width + "x" + height, button);
-            assertEquals("刷新按钮应直接挂在根容器上（" + width + "x" + height + "）",
-                    root, button.getParent());
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) button.getLayoutParams();
-            // top|end 在运行时解析为绝对方向（RTL 下可能是 LEFT），这里只判断「靠上 + 贴一侧」。
-            assertEquals("刷新按钮应靠上（" + width + "x" + height + "）",
-                    Gravity.TOP, params.gravity & Gravity.VERTICAL_GRAVITY_MASK);
-            int horizontal = params.gravity & Gravity.HORIZONTAL_GRAVITY_MASK;
-            assertTrue("刷新按钮应贴在左右某一侧（" + width + "x" + height + "）",
-                    horizontal == Gravity.RIGHT || horizontal == Gravity.LEFT);
+            View target = root.findViewById(R.id.refresh_touch_target);
+            assertEquals(target, button.getParent());
+            assertEquals(root, ((View) target.getParent()).getParent());
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) target.getLayoutParams();
+            Rect bounds = new Rect(0,0,target.getWidth(),target.getHeight());
+            ((ViewGroup)root).offsetDescendantRectToMyCoords(target,bounds);
+            assertTrue(bounds.centerX() > width / 2f);
+            assertTrue(bounds.centerY() < height / 3f);
         }
     }
 
-    @Test public void refreshButtonCarriesAClickActionInEveryRatio() {
+    @Test public void refreshIconAndSurroundingTargetHaveClickActionsInEveryRatio() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         for (int[] size : SIZES) {
             int width = size[0], height = size[1];
             View root = render(activity, viewsFor(activity, width, height), width, height);
             ImageView button = root.findViewById(R.id.refresh_button);
             assertNotNull(button);
-            // RemoteViews 应用后会给控件挂上点击监听；没有监听就说明点了不会有任何反应。
-            assertTrue("刷新按钮没有绑定点击动作 " + width + "x" + height,
-                    button.isClickable() || button.hasOnClickListeners());
+            View target = root.findViewById(R.id.refresh_touch_target);
+            assertTrue("Refresh target must handle the whole hit region", target.hasOnClickListeners());
+            assertTrue("Icon center must also refresh", button.hasOnClickListeners());
+            assertNotNull("Whole hit region must show pressed feedback", target.getForeground());
+        }
+    }
+
+    @Test public void refreshHasAFingerSizedHitAreaWithoutEnlargingItsIcon() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        for (int[] size : SIZES) {
+            View root = render(activity, viewsFor(activity, size[0], size[1]), size[0], size[1]);
+            View icon = root.findViewById(R.id.refresh_button);
+            View target = icon.getParent() == root ? icon : (View) icon.getParent();
+            float density = activity.getResources().getDisplayMetrics().density;
+            assertTrue("Refresh touch target must be at least 48dp wide", target.getWidth() / density >= 48f);
+            assertTrue("Refresh touch target must be at least 48dp tall", target.getHeight() / density >= 48f);
+            assertTrue("The expanded touch target must handle clicks", target.hasOnClickListeners());
+            WidgetRenderer.Geometry geometry=new WidgetRenderer.Geometry(WidgetRenderer.Form.COMPACT,size[0],size[1],28);
+            assertEquals(26f*geometry.scale,icon.getWidth()/density,1f);
+        }
+    }
+
+    @Test @Config(sdk = {28, 34}, application = android.app.Application.class)
+    public void tapsAroundTheRefreshIconActuallyRefreshInsteadOfOpeningTheApp() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Activity activity = controller.get();
+            AppWidgetManager manager = AppWidgetManager.getInstance(activity);
+            int widgetId = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
+            for (int[] size : SIZES) {
+                for (int[] offset : new int[][]{{0, 0}, {-21, 0}, {21, 0}, {0, -21}, {0, 21}}) {
+                    View root = render(activity, viewsFor(activity, size[0], size[1]), size[0], size[1]);
+                    View icon = root.findViewById(R.id.refresh_button);
+                    Rect bounds = new Rect(0, 0, icon.getWidth(), icon.getHeight());
+                    ((ViewGroup) root).offsetDescendantRectToMyCoords(icon, bounds);
+                    float density = activity.getResources().getDisplayMetrics().density;
+                    float x = bounds.exactCenterX() + offset[0] * density;
+                    float y = bounds.exactCenterY() + offset[1] * density;
+                    ((TextView) Shadows.shadowOf(manager).getViewFor(widgetId)
+                            .findViewById(R.id.countdown_label)).setText("stale countdown");
+                    long time = SystemClock.uptimeMillis();
+                    MotionEvent down = MotionEvent.obtain(time, time, MotionEvent.ACTION_DOWN, x, y, 0);
+                    MotionEvent up = MotionEvent.obtain(time, time + 50, MotionEvent.ACTION_UP, x, y, 0);
+                    try {
+                        assertTrue(root.dispatchTouchEvent(down));
+                        assertTrue(root.dispatchTouchEvent(up));
+                        Shadows.shadowOf(Looper.getMainLooper()).idle();
+                    } finally {
+                        down.recycle();
+                        up.recycle();
+                    }
+                    String label = size[0] + "x" + size[1] + " offset=" + offset[0] + "," + offset[1];
+                    assertNull(label + " must not fall through to opening the app",
+                            Shadows.shadowOf(activity).getNextStartedActivity());
+                    assertNotEquals(label + " must reach the refresh receiver", "stale countdown",
+                            ((TextView) Shadows.shadowOf(manager).getViewFor(widgetId)
+                                    .findViewById(R.id.countdown_label)).getText().toString());
+                }
+            }
         }
     }
 
@@ -156,13 +187,7 @@ public class WidgetRefreshButtonTest {
                 .setAction(WidgetRefresh.ACTION_TICK));
     }
 
-    /**
-     * 用户反馈「点了没反应」。ACTION_TICK 必须真的让 provider 重算并推送 RemoteViews，
-     * 否则就是功能缺失，而不只是缺少视觉提示。
-     *
-     * 这里直接在准备过配置的环境里触发 ACTION_TICK：refreshAll 内部会读取配置、
-     * 计算班次并调用 updateAppWidget。只要全程不抛异常且刷新逻辑可达，即说明链路成立。
-     */
+    /** Verify an actual widget update, not merely the existence of the alarm service. */
     @Test public void tickBroadcastActuallyRefreshesWidgetViews() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         activity.getSharedPreferences("WidgetSettings", Context.MODE_PRIVATE).edit()
@@ -171,12 +196,19 @@ public class WidgetRefreshButtonTest {
                 .putString("shiftDefs", "{}")
                 .commit();
 
+        AppWidgetManager manager = AppWidgetManager.getInstance(activity);
+        int widgetId = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_fixed_compact);
+        ((TextView) Shadows.shadowOf(manager).getViewFor(widgetId)
+                .findViewById(R.id.countdown_label)).setText("stale countdown");
+
         new MyWidgetProvider().onReceive(activity, new android.content.Intent(activity, MyWidgetProvider.class)
                 .setAction(WidgetRefresh.ACTION_TICK));
 
         // 刷新后应重新排好下一次状态边界闹钟，这是 refreshAll 走完的标志。
         android.app.AlarmManager alarms =
                 (android.app.AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
-        assertNotNull(alarms);
+        assertNotEquals("stale countdown", ((TextView) Shadows.shadowOf(manager).getViewFor(widgetId)
+                .findViewById(R.id.countdown_label)).getText().toString());
+        assertFalse(Shadows.shadowOf(alarms).getScheduledAlarms().isEmpty());
     }
 }

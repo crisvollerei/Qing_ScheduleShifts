@@ -5,8 +5,8 @@ plugins {
 // 版本号集中在此处维护。
 // versionCode 必须严格递增，否则覆盖安装会被系统拒绝（INSTALL_FAILED_VERSION_DOWNGRADE）；
 // versionName 是展示给用户的版本，可与 code 不必一一对应。
-def appVersionCode = 14
-def appVersionName = "0.2.2"
+def appVersionCode = 19
+def appVersionName = "0.2.7"
 
 // 签名凭据从本机 local.properties 或环境变量读取，避免密钥口令进入版本库。
 def localProperties = new Properties()

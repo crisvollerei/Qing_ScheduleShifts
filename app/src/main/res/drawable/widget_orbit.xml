@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="180dp" android:height="180dp" android:viewportWidth="180" android:viewportHeight="180">
-    <path android:pathData="M90,12 A78,78 0,1 1,89.99,12 M90,32 A58,58 0,1 1,89.99,32 M90,52 A38,38 0,1 1,89.99,52" android:fillColor="@android:color/transparent" android:strokeColor="@color/widget_orbit" android:strokeWidth="0.7" />
-    <path android:pathData="M90,7 L95,12 L90,17 L85,12 Z M145,61 L148,64 L145,67 L142,64 Z" android:fillColor="@color/widget_orbit" />
-</vector>

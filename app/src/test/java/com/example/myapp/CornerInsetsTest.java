@@ -52,8 +52,7 @@ public class CornerInsetsTest {
      * 都不会落进宿主圆角。四档常量都必须满足，且在宿主圆角放大到 36dp 时仍然满足。
      */
     @Test public void everyDeclaredInsetSurvivesTheLargestPlausibleHostRadius() {
-        int[] insets = {CornerInsets.MINI, CornerInsets.MINI_WIDE, CornerInsets.SMALL,
-                CornerInsets.COMPANION, CornerInsets.WIDE, CornerInsets.FULL};
+        int[] insets = {CornerInsets.MINIMUM, CornerInsets.COMPACT, CornerInsets.FULL};
         // 28dp 是 Android 12+ 的系统默认值，32dp 覆盖 One UI 等偏大的宿主；
         // 36dp 属于极端定制，需要 10.6dp 内边距，会在 2x2 上吃掉过多内容，不作保证。
         for (float radius : new float[]{28f, 32f}) {
@@ -71,7 +70,7 @@ public class CornerInsetsTest {
         assertEquals(0f, CornerInsets.arcInset(CornerInsets.HOST_RADIUS, CornerInsets.HOST_RADIUS), 0.001f);
         // 但基础内边距 B 已经覆盖了首行位置上的侵入量：
         // y = B 时 arc(B) <= B 恒成立，所以内容壳统一用 B 就够了。
-        for (int inset : new int[]{CornerInsets.MINI, CornerInsets.SMALL, CornerInsets.FULL}) {
+        for (int inset : new int[]{CornerInsets.MINIMUM, CornerInsets.COMPACT, CornerInsets.FULL}) {
             assertTrue("首行上沿 y=" + inset + " 时弧线侵入 "
                             + CornerInsets.arcInset(CornerInsets.HOST_RADIUS, inset) + " 不应超过内边距",
                     CornerInsets.arcInset(CornerInsets.HOST_RADIUS, inset) <= inset);
@@ -79,7 +78,6 @@ public class CornerInsetsTest {
     }
 
     @Test public void refreshButtonSitsOnTheSameInsetAsTheContentShell() {
-        assertEquals(CornerInsets.MINI, CornerInsets.REFRESH);
-        assertTrue(CornerInsets.REFRESH >= CornerInsets.safeInset(CornerInsets.HOST_RADIUS));
+        assertTrue(CornerInsets.MINIMUM >= CornerInsets.safeInset(CornerInsets.HOST_RADIUS));
     }
 }

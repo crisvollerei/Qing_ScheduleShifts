@@ -24,12 +24,7 @@ final class CornerInsets {
         return arcInset(radius, distanceFromEdge);
     }
 
-    // Baselines match dimens.xml; withSafeInset grows them for a larger host radius.
-    static final int MINI = 10;
-    static final int MINI_WIDE = 10;
-    static final int SMALL = 12;
-    static final int COMPANION = 12;
-    static final int WIDE = 14;
-    static final int FULL = 14;
-    static final int REFRESH = MINI;
+    static final int MINIMUM = 10;
+    static final int COMPACT = 16;
+    static final int FULL = 20;
 }

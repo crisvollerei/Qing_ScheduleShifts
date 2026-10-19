@@ -24,6 +24,7 @@
 
         <receiver
             android:name=".MyWidgetProvider"
+            android:label="@string/widget_form_compact"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -37,6 +38,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/my_widget_info" />
+        </receiver>
+        <receiver android:name=".MyWidgetProvider$Minimum" android:label="@string/widget_form_minimum" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/my_widget_minimum_info" />
+        </receiver>
+        <receiver android:name=".MyWidgetProvider$Wide" android:label="@string/widget_form_wide" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/my_widget_wide_info" />
+        </receiver>
+        <receiver android:name=".MyWidgetProvider$Full" android:label="@string/widget_form_full" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/my_widget_full_info" />
         </receiver>
     </application>
 

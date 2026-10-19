@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Chronometer xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/countdown_chronometer"
+    style="@style/WidgetCardTimer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="start|center_vertical"
+    android:visibility="gone" />

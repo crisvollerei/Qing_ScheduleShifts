@@ -1,36 +1,25 @@
 package com.example.myapp;
-
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import org.junit.Test;
-
 public class WidgetLayoutTest {
-    @Test public void minimumAndNarrowSizesUseMiniLayout() {
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(110, 110));
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(110, 400));
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(155, 320));
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(180, 110));
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(240, 215));
+    @Test public void fourExplicitFormsHaveOneReferenceCanvasEach() {
+        assertEquals(4,WidgetRenderer.Form.values().length);
+        assertEquals(4,MyWidgetProvider.PROVIDERS.length);
+        assertEquals(R.layout.widget_fixed_minimum,WidgetRenderer.Form.MINIMUM.layout);
+        assertEquals(R.layout.widget_fixed_compact,WidgetRenderer.Form.COMPACT.layout);
+        assertEquals(R.layout.widget_proportional_wide,WidgetRenderer.Form.WIDE.layout);
+        assertEquals(R.layout.widget_proportional_full,WidgetRenderer.Form.FULL.layout);
     }
-    @Test public void shortSizesReserveSideSpaceBeforeSplittingInformationColumns() {
-        assertEquals(R.layout.widget_layout_mini, MyWidgetProvider.debugLayoutFor(224, 110));
-        assertEquals(R.layout.widget_layout_mini_wide, MyWidgetProvider.debugLayoutFor(360, 110));
-        assertEquals(R.layout.widget_layout_mini_wide, MyWidgetProvider.debugLayoutFor(500, 215));
-    }
-    @Test public void compactUsesActualDpNotLauncherCellGuesses() {
-        assertEquals(R.layout.widget_layout_small, MyWidgetProvider.debugLayoutFor(156, 216));
-        assertEquals(R.layout.widget_layout_small, MyWidgetProvider.debugLayoutFor(215, 320));
-        assertEquals(R.layout.widget_layout_companion, MyWidgetProvider.debugLayoutFor(216, 216));
-        assertEquals(R.layout.widget_layout_companion, MyWidgetProvider.debugLayoutFor(280, 240));
-        assertEquals(R.layout.widget_layout_companion, MyWidgetProvider.debugLayoutFor(320, 216));
-    }
-    @Test public void wideUsesAspectRatioEvenWhenItIsAlsoTall() {
-        assertEquals(R.layout.widget_layout_wide, MyWidgetProvider.debugLayoutFor(360, 216));
-        assertEquals(R.layout.widget_layout_wide, MyWidgetProvider.debugLayoutFor(500, 320));
-        assertEquals(R.layout.widget_layout_wide, MyWidgetProvider.debugLayoutFor(600, 440));
-    }
-    @Test public void squareAndPortraitUseFullLayout() {
-        assertEquals(R.layout.widget_layout, MyWidgetProvider.debugLayoutFor(240, 360));
-        assertEquals(R.layout.widget_layout, MyWidgetProvider.debugLayoutFor(320, 320));
-        assertEquals(R.layout.widget_layout_small, MyWidgetProvider.debugLayoutFor(180, 420));
+    @Test public void fitUsesTheSmallerAxisWhileCentersFollowBothAxes() {
+        for(WidgetRenderer.Form form:WidgetRenderer.Form.values())
+            for(float[] ratio:new float[][]{{1,1},{1.5f,1},{1,1.5f},{1.6f,1.6f}}) {
+                WidgetRenderer.Geometry g=new WidgetRenderer.Geometry(form,form.width*ratio[0],form.height*ratio[1],28);
+                assertSame(form,g.form);
+                assertEquals(Math.min(ratio[0],ratio[1]),g.scale,0.001f);
+                float[] box=g.box(20,30,80,40);
+                assertEquals(2,box[2]/box[3],0.001f);
+                assertEquals(60/form.width,(box[0]+box[2]/2)/g.width,0.001f);
+                assertEquals(50/form.height,(box[1]+box[3]/2)/g.height,0.001f);
+            }
     }
 }

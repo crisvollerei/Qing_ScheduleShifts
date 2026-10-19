@@ -2,8 +2,6 @@ package com.example.myapp;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -13,17 +11,17 @@ import android.os.PowerManager;
 final class WidgetRefresh {
     static final String ACTION_TICK = "com.example.myapp.action.WIDGET_TICK";
     static final String ACTION_RECOVER = "com.example.myapp.action.WIDGET_RECOVER";
+    static final String ACTION_REFRESH = "com.example.myapp.action.WIDGET_REFRESH";
     static final long RECOVERY_INTERVAL_MS = 60_000L;
-    /** 点击刷新按钮：启动转圈动画。 */
+    // Retain old identities to accept installed widget clicks and cancel queued alarms after upgrade.
     static final String ACTION_SPIN_START = "com.example.myapp.action.WIDGET_SPIN_START";
-    /** 刷新按钮转圈动画的每一帧动作。 */
     static final String ACTION_SPIN = "com.example.myapp.action.WIDGET_SPIN";
     private static final int BOUNDARY = 1001;
     private static final int RECOVERY = 1003;
     private static final int LEGACY_SECOND = 1004;
     private static final int HOST_RECOVERY = 1005;
-    /** 动画帧的闹钟请求码基数，逐帧 +1，避免互相覆盖。 */
     private static final int SPIN_FRAME_BASE = 2000;
+    private static final int SPIN_FRAME_COUNT = 9;
 
     private WidgetRefresh() { }
 
@@ -47,58 +45,12 @@ final class WidgetRefresh {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    /**
-     * 刷新按钮的「转一圈」动画。
-     *
-     * RemoteViews 不能播放动画，只能设置静态属性，所以这里按帧驱动：
-     * 每一帧用 setExact 闹钟唤醒，把按钮的 rotation 设为该帧角度并重绘。
-     *
-     * 角度曲线不是匀速：先快速转起来，接近一圈时略过头，再回正。
-     * 用 cubic-bezier(.22,1.2,.36,1) 类的过冲曲线采样，得到 fps 约 60ms/帧，
-     * 总时长约 520ms，终点精确回到 360°（视觉等价于 0°）。
-     */
-    static void scheduleSpin(Context context) {
+    static void cancelLegacySpin(Context context) {
         AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarms == null) return;
-        boolean exact = canScheduleExact(context);
-        long base = System.currentTimeMillis();
-        float[] frames = spinFrames();
-        for (int i = 0; i < frames.length; i++) {
-            long when = base + spinFrameDelay(i);
-            PendingIntent intent = spinIntent(context, i);
-            try {
-                if (exact) {
-                    alarms.setExact(AlarmManager.RTC, when, intent);
-                } else {
-                    // 没有精确闹钟权限时退化为普通闹钟；帧会有抖动，但动画仍可播放。
-                    alarms.set(AlarmManager.RTC, when, intent);
-                }
-            } catch (SecurityException revoked) {
-                alarms.set(AlarmManager.RTC, when, intent);
-                exact = false;
-            }
+        for (int frame = 0; frame < SPIN_FRAME_COUNT; frame++) {
+            alarms.cancel(spinIntent(context, frame));
         }
-    }
-
-    /** 动画帧数：0..FRAME_COUNT-1 覆盖整段。 */
-    static final int SPIN_FRAME_COUNT = 9;
-
-    /** 每帧相对起点的毫秒偏移。前段密集（快）、后段稀疏（缓）。 */
-    static long spinFrameDelay(int frame) {
-        if (frame <= 0) return 0;
-        // 用幂次让帧间隔逐渐拉大，配合缓出曲线。
-        double t = frame / (double) (SPIN_FRAME_COUNT - 1);
-        return (long) (520 * Math.pow(t, 0.72));
-    }
-
-    /**
-     * 各帧的旋转角度（度）。
-     *
-     * 曲线要点：快速启动 → 冲过 360° 一点点（约 372°）→ 回落到 360°。
-     * 过冲量小（约 12°），回正占最后两帧，形成「转过头再回正」的手感。
-     */
-    static float[] spinFrames() {
-        return new float[]{0f, 46f, 128f, 214f, 286f, 336f, 366f, 372f, 360f};
     }
 
     static boolean canScheduleExact(Context context) {
@@ -107,8 +59,7 @@ final class WidgetRefresh {
     }
 
     static boolean hasWidgets(Context context) {
-        return AppWidgetManager.getInstance(context).getAppWidgetIds(
-                new ComponentName(context, MyWidgetProvider.class)).length > 0;
+        return MyWidgetProvider.widgetIds(context).length > 0;
     }
 
     static void schedule(Context context, long boundary) {
@@ -182,8 +133,6 @@ final class WidgetRefresh {
             alarms.cancel(tickIntent(context, code));
         }
         alarms.cancel(recoveryIntent(context));
-        for (int frame = 0; frame < SPIN_FRAME_COUNT; frame++) {
-            alarms.cancel(spinIntent(context, frame));
-        }
+        cancelLegacySpin(context);
     }
 }

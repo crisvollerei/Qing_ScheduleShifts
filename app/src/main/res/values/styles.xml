@@ -15,7 +15,7 @@
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
     </style>
-    <style name="WidgetText" parent="@android:style/Widget.TextView">
+    <style name="WidgetCardText" parent="@android:style/Widget.TextView">
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textColor">@color/widget_ink</item>
         <item name="android:includeFontPadding">false</item>
@@ -23,28 +23,23 @@
         <item name="android:ellipsize">end</item>
         <item name="android:textSize">12sp</item>
     </style>
-    <style name="WidgetLabel" parent="WidgetText">
+    <style name="WidgetCardLabel" parent="WidgetCardText">
         <item name="android:textColor">@color/widget_muted</item>
-        <item name="android:textSize">10sp</item>
     </style>
-    <style name="WidgetTimer" parent="WidgetText">
-        <item name="android:fontFamily">sans-serif-light</item>
+    <style name="WidgetCardName" parent="WidgetCardText">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+    <style name="WidgetCardTimer" parent="WidgetCardText">
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:fontFeatureSettings">tnum</item>
         <item name="android:textColor">@color/widget_accent</item>
         <item name="android:textSize">28sp</item>
         <item name="android:ellipsize">none</item>
     </style>
-    <!-- 未来七天徽标：固定圆角底块，等分列宽。 -->
-    <style name="WidgetBadge" parent="WidgetText">
-        <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_marginEnd">@dimen/widget_week_badge_gap</item>
-        <item name="android:background">@drawable/widget_badge</item>
+    <style name="WidgetCardWeek" parent="WidgetCardLabel">
         <item name="android:gravity">center</item>
         <item name="android:maxLines">2</item>
-        <item name="android:textSize">@dimen/widget_text_label_1</item>
-        <item name="android:textColor">@color/widget_ink</item>
-        <item name="android:includeFontPadding">false</item>
+        <item name="android:ellipsize">none</item>
     </style>
 </resources>

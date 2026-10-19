@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reserve old IDs so an upgrade cannot reapply new actions to the old padding-based tree. -->
+    <item type="layout" name="widget_card_minimum">@layout/widget_fixed_minimum</item>
+    <item type="layout" name="widget_card_compact">@layout/widget_fixed_compact</item>
+    <item type="layout" name="widget_card_wide">@layout/widget_fixed_wide</item>
+    <item type="layout" name="widget_card_full">@layout/widget_fixed_full</item>
+    <!-- Reserve the 0.2.6 IDs too: these two compositions now have a different view tree. -->
+    <item type="layout" name="widget_fixed_full">@layout/widget_proportional_full</item>
+    <item type="layout" name="widget_fixed_wide">@layout/widget_proportional_wide</item>
+</resources>

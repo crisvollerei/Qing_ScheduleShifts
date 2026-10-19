@@ -1,449 +1,202 @@
 package com.example.myapp;
-
 import static org.junit.Assert.*;
-
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Chronometer;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.TextClock;
-import android.widget.TextView;
-import android.widget.RemoteViews;
-
+import android.graphics.*;
+import android.os.Looper;
+import android.view.*;
+import android.widget.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
-import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.*;
+import org.robolectric.annotation.*;
 import org.robolectric.android.controller.ActivityController;
-
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.util.Calendar;
 import java.util.Map;
-
+import java.util.concurrent.TimeUnit;
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 34, qualifiers = "zh-rCN-mdpi")
+@Config(sdk=34, qualifiers="zh-rCN-mdpi", application=android.app.Application.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class WidgetRenderingTest {
-    private View render(Activity activity, int width, int height, boolean dark, float fontScale) {
-        Configuration config = new Configuration(activity.getResources().getConfiguration());
-        config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
-                | (dark ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
-        config.fontScale = fontScale;
-        Context context = activity.createConfigurationContext(config);
-        Calendar now = Calendar.getInstance();
-        Calendar anchor = MyWidgetProvider.parseAnchor("2026-04-18");
-        String[] cycle = {"白班", "夜班", "休息", "白班", "夜班", "休息", "休息", "休息"};
-        return render(activity, context, width, height, now, anchor, cycle, MyWidgetProvider.debugDefaultDefs());
-    }
-
-    private View render(Activity activity, Context context, int width, int height,
-            Calendar now, Calendar anchor, String[] cycle, Map<String, MyWidgetProvider.ShiftDef> defs) {
-        android.os.SystemClock.setCurrentTimeMillis(now.getTimeInMillis());
-        MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
-        RemoteViews remote = MyWidgetProvider.buildViews(context, width, height, now, slot,
-                anchor, cycle, defs, MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs));
-        FrameLayout surface = new FrameLayout(context);
-        activity.setContentView(surface);
-        View view = remote.apply(context, surface);
-        float density = context.getResources().getDisplayMetrics().density;
-        int w = Math.round(width * density), h = Math.round(height * density);
-        surface.addView(view, new ViewGroup.LayoutParams(w, h));
-        surface.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
-        surface.layout(0, 0, w, h);
-        return view;
-    }
-
-    /**
-     * 校验某个控件「若显示则完整可见」。
-     *
-     * 小尺寸档位会按可用高度撤掉辅助信息（班次时段 / 周期 / 后续排班 / 副标题），
-     * 这是排版策略的一部分，不算缺陷；但**显示出来的东西绝不允许被裁**。
-     * 主信息的常显性由 {@link #assertCoreInformationVisible} 单独保证。
-     */
-    private void assertWithinBounds(View root, int id, String variant) {
-        View view = root.findViewById(id);
-        if (view.getVisibility() != View.VISIBLE) return;
-        assertTrue(variant + " zero-height view " + id, view.getHeight() > 0);
-        int y = 0, x = 0;
-        for (View current = view; current != root; current = (View) current.getParent()) {
-            y += current.getTop();
-            x += current.getLeft();
-            View parent = (View) current.getParent();
-            assertTrue(variant + " ancestor clips " + root.getResources().getResourceEntryName(id)
-                    + " y=" + y + " h=" + view.getHeight() + " parent=" + parent.getHeight(),
-                    y >= 0 && y + view.getHeight() <= parent.getHeight());
-            assertTrue(variant + " ancestor clips width: " + root.getResources().getResourceEntryName(id),
-                    x >= 0 && x + view.getWidth() <= parent.getWidth());
+    private void assertCore(View root) {
+        for(int id:new int[]{R.id.today_date,R.id.shift_name,R.id.live_clock,R.id.countdown_label,R.id.refresh_touch_target}) {
+            View view=root.findViewById(id);
+            assertEquals(View.VISIBLE,view.getVisibility());
+            assertTrue(view.isShown());
+            assertTrue(view.getWidth()>0 && view.getHeight()>0);
         }
-        assertTrue(variant + " clipped: " + root.getResources().getResourceEntryName(id)
-                + " y=" + y + " h=" + view.getHeight() + " root=" + root.getHeight(),
-                y >= 0 && y + view.getHeight() <= root.getHeight());
-        if (view instanceof TextView) {
-            TextView text = (TextView) view;
-            assertTrue(variant + " Missing text: " + id, text.getText().length() > 0);
-            assertTrue(variant + " Text has zero height: " + id,
-                    text.getLayout() != null && text.getLayout().getLineCount() > 0);
-            // 「内部被裁」的准确判据是行数超过 maxLines。
-            // 但 Chronometer / TextClock 在加权宽度里重新测量时会留下上一次的 Layout，
-            // 用行数或像素高度判断都会误报；它们的完整性由 assertWholeText 直接量文字宽度保证。
-            boolean relayouted = text instanceof Chronometer || text instanceof TextClock;
-            if (!relayouted && text.getMaxLines() > 0) {
-                assertTrue(variant + " text internally clips "
-                                + root.getResources().getResourceEntryName(id)
-                                + " lines=" + text.getLayout().getLineCount()
-                                + " maxLines=" + text.getMaxLines(),
-                        text.getLayout().getLineCount() <= text.getMaxLines());
-            }
-            if (!relayouted) {
-                assertTrue(variant + " 文字高度不足一行："
-                                + root.getResources().getResourceEntryName(id),
-                        text.getHeight() >= text.getLineHeight() + text.getCompoundPaddingTop());
+        TextView timer=root.findViewById(R.id.countdown_chronometer);
+        TextView clock=root.findViewById(R.id.live_clock);
+        assertTrue(timer.getText().toString(),timer.getText().toString().matches("[0-9]{2}:[0-9]{2}:[0-9]{2}"));
+        assertTrue("Countdown must dominate the current time",timer.getTextSize()>=clock.getTextSize()*1.6f);
+        assertEquals(Gravity.LEFT,timer.getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK);
+        assertEquals(0,timer.getLayout().getEllipsisCount(0));
+        if(root.findViewById(R.id.week_title)!=null) {
+            assertEquals(clock.getTextSize(),((TextView)root.findViewById(R.id.week_title)).getTextSize(),0.01f);
+        }
+    }
+    @Test public void allSupportedShapesShareTheNewHierarchyInBothThemes() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for(boolean dark:new boolean[]{false,true}) for(int[] size:WidgetRenderFixture.SIZES) {
+                Context context=WidgetRenderFixture.context(c.get(),dark,1.3f);
+                View root=WidgetRenderFixture.render(c.get(),context,size[0],size[1],"白班",28,-1);
+                assertCore(root);
+                assertNull("The supporting clock has no separate panel",root.findViewById(R.id.clock_row).getBackground());
             }
         }
     }
-
-    /**
-     * 主信息在任何尺寸、任何主题、任何系统字号下都必须显示。
-     *
-     * 排版策略允许撤掉辅助信息，但日期、班次名、实时时钟与倒计时是这个小部件的
-     * 存在理由，撤掉任何一项都等于功能缺失。
-     */
-    private void assertCoreInformationVisible(View root, String variant) {
-        for (int id : new int[]{R.id.today_date, R.id.shift_emoji, R.id.shift_name,
-                R.id.live_clock, R.id.countdown_label}) {
-            assertEquals(variant + " 主信息必须显示：" + root.getResources().getResourceEntryName(id),
-                    View.VISIBLE, root.findViewById(id).getVisibility());
-        }
-        boolean timer = root.findViewById(R.id.countdown_chronometer).getVisibility() == View.VISIBLE
-                || root.findViewById(R.id.countdown_text).getVisibility() == View.VISIBLE;
-        assertTrue(variant + " 倒计时必须显示", timer);
-    }
-
-    @Test public void allSizesAndThemesRenderWithoutClipping() throws Exception {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            Activity activity = controller.get();
-            StringBuilder failures = new StringBuilder();
-            for (boolean dark : new boolean[]{false, true}) {
-                for (float font : new float[]{1f, 1.3f}) {
-                    for (int[] size : new int[][]{{156,216}, {180,320}, {215,216}, {216,216}, {224,216}, {240,240}, {240,280}, {280,216}, {320,320},
-                            {320,216}, {300,216}, {359,216}, {360,216}, {360,300}, {500,320}, {300,520}, {224,320}, {224,380}, {320,380}, {224,420}, {320,420}, {224,440}, {110,110}, {110,144}, {110,176},
-                            {110,216}, {110,320}, {110,128}, {110,143}, {110,175}, {110,215},
-                            {140,110}, {156,110}, {180,110}, {224,110}, {224,144},
-                            {216,110}, {224,128}, {216,144}, {224,176}, {240,215}, {280,180}, {320,110}, {359,110}, {360,110}, {360,144}, {360,215}, {500,110},
-                            {500,215}, {360,176}, {420,110}}) {
-                        String variant = size[0] + "x" + size[1] + (dark ? "-dark" : "-light") + "-font" + font;
-                        View view = render(activity, size[0], size[1], dark, font);
-                        File directory = new File("../.qa/widget-previews");
-                        directory.mkdirs();
-                        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-                        view.draw(new Canvas(bitmap));
-                        try (FileOutputStream out = new FileOutputStream(new File(directory, variant + ".png"))) {
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                        }
-                        bitmap.recycle();
-                        for (int id : new int[]{R.id.today_date, R.id.shift_name, R.id.shift_emoji, R.id.shift_time,
-                                R.id.shift_status, R.id.cycle_info, R.id.progress_bar, R.id.next_shifts,
-                                R.id.live_clock, R.id.countdown_label, R.id.countdown_chronometer,
-                                R.id.countdown_detail}) {
-                            boolean mini = MyWidgetProvider.layoutFor(size[0], size[1]) == R.layout.widget_layout_mini
-                                    || MyWidgetProvider.layoutFor(size[0], size[1]) == R.layout.widget_layout_mini_wide;
-                            if (id == R.id.shift_status && view.findViewById(id).getVisibility() != View.VISIBLE) continue;
-                            if ((id == R.id.countdown_detail || (mini && (id == R.id.cycle_info || id == R.id.next_shifts)))
-                                    && view.findViewById(id).getVisibility() == View.GONE) continue;
-                            try {
-                                assertCoreInformationVisible(view, variant);
-                                assertWithinBounds(view, id, variant);
-                                if (id == R.id.live_clock || id == R.id.countdown_chronometer || id == R.id.shift_emoji) {
-                                    assertWholeText(view, id, variant);
-                                }
-                            }
-                            catch (AssertionError error) { failures.append(error.getMessage()).append("\n"); }
-                        }
-                        try {
-                            assertCompanionPresentation(view, MyWidgetProvider.showsCompanion(size[0], size[1]), variant);
-                        } catch (AssertionError error) { failures.append(error.getMessage()).append("\n"); }
-                    }
-                }
-            }
-            assertEquals(failures.toString(), "", failures.toString());
+    @Test public void fullCardUsesActualWeekAndCompactCycleInsteadOfTheOldTimePanel() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            View root=WidgetRenderFixture.render(c.get(),c.get(),304,320,"白班",28,-1);
+            assertCore(root);
+            assertEquals("周期 1/8",((TextView)root.findViewById(R.id.cycle_info)).getText().toString());
+            assertEquals("20\n🌙",((TextView)root.findViewById(R.id.week_day_0)).getText().toString());
+            assertTrue(root.findViewById(R.id.week_day_0).getContentDescription().toString().contains("夜班"));
+            assertTrue(((TextView)root.findViewById(R.id.countdown_detail)).getText().toString().contains("夜班"));
+            assertEquals(28,root.findViewById(R.id.progress_bar).getWidth());
+            assertEquals(80,root.findViewById(R.id.companion_portrait).getWidth());
         }
     }
-
-    private Rect bounds(View root, View child) {
-        Rect rectangle = new Rect(0, 0, child.getWidth(), child.getHeight());
-        ((ViewGroup) root).offsetDescendantRectToMyCoords(child, rectangle);
-        return rectangle;
-    }
-
-    private void assertCompanionPresentation(View root, boolean expected, String variant) {
-        ImageView portrait = root.findViewById(R.id.companion_portrait);
-        assertEquals(variant + " portrait visibility", expected ? View.VISIBLE : View.GONE, portrait.getVisibility());
-        if (expected) {
-            assertCompanionIsSeparate(root, variant);
-        } else {
-            // GONE 的立绘仍保留上一次测量的宽度，直接读 width 不可靠；
-            // 准确的判据是「它所在的文本列变宽到几乎占满内容区」（不预留侧栏）。
-            float density = root.getResources().getDisplayMetrics().density;
-            View contentColumn = (View) root.findViewById(R.id.today_date).getParent();
-            assertTrue(variant + " hidden portrait still reserves a column: column="
-                            + contentColumn.getWidth() + " root=" + root.getWidth(),
-                    contentColumn.getWidth() >= root.getWidth() - 2 * 14 * density - 2);
-        }
-    }
-
-    private void assertCompanionIsSeparate(View root, String variant) {
-        ImageView portrait = root.findViewById(R.id.companion_portrait);
-        assertWithinBounds(root, R.id.companion_portrait, variant);
-        float density = root.getResources().getDisplayMetrics().density;
-        assertTrue(variant + " must have a real side character, not a tiny avatar",
-                Math.min(portrait.getWidth(), portrait.getHeight()) >= 64 * density);
-        assertNull(variant + " no avatar halo", portrait.getBackground());
-        assertTrue(variant + " missing companion bitmap", portrait.getDrawable() instanceof BitmapDrawable);
-        Bitmap bitmap = ((BitmapDrawable) portrait.getDrawable()).getBitmap();
-        assertTrue("Native companion must stay small", bitmap.getWidth() <= 320 && bitmap.getHeight() <= 320);
-        assertTrue("Preserve transparent background", bitmap.hasAlpha());
-        android.util.TypedValue resolved = new android.util.TypedValue();
-        root.getResources().getValue(R.drawable.widget_companion, resolved, true);
-        boolean dark = (root.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
-        assertTrue("Companion must follow the host theme, not the current shift",
-                resolved.string.toString().contains(dark ? "widget_companion_night" : "widget_companion_day"));
-        Rect picture = bounds(root, portrait);
-        for (int id : new int[]{R.id.today_date, R.id.shift_name, R.id.shift_time, R.id.shift_status,
-                R.id.cycle_info, R.id.next_shifts, R.id.live_clock, R.id.countdown_label,
-                R.id.countdown_chronometer, R.id.countdown_text, R.id.countdown_detail}) {
-            View information = root.findViewById(id);
-            if (information.getVisibility() != View.VISIBLE) continue;
-            assertFalse(variant + " companion overlaps " + root.getResources().getResourceEntryName(id),
-                    Rect.intersects(picture, bounds(root, information)));
-        }
-    }
-
-    @Test public void moderatelyWideCardsShowSideCharactersWithoutFullCardHeight() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            for (int[] sample : new int[][]{{110,110,0}, {180,320,0}, {215,280,0},
-                    {216,216,1}, {224,216,1}, {240,240,1}, {280,216,1}, {320,216,1},
-                    {215,110,0}, {216,110,1}, {224,110,1}, {320,110,1}, {359,110,1}, {360,110,1}, {500,110,1}}) {
-                View view = render(controller.get(), sample[0], sample[1], false, 1.3f);
-                assertCompanionPresentation(view, sample[2] == 1, sample[0] + "x" + sample[1]);
+    @Test public void nativeTimersContinueWithoutProviderUpdatesInAllFourCompositions() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for(int[] size:new int[][]{{110,110},{184,184},{360,128},{304,320}}) {
+                View root=WidgetRenderFixture.render(c.get(),c.get(),size[0],size[1],"白班",28,-1);
+                Chronometer timer=root.findViewById(R.id.countdown_chronometer);
+                TextClock clock=root.findViewById(R.id.live_clock);
+                String a=timer.getText().toString(), b=clock.getText().toString();
+                Shadows.shadowOf(Looper.getMainLooper()).idleFor(2,TimeUnit.SECONDS);
+                assertNotEquals(a,timer.getText().toString()); assertNotEquals(b,clock.getText().toString());
             }
         }
     }
-
-    @Test public void resizingTheSameMiniViewReclaimsTheHiddenCharacterColumn() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            Activity activity = controller.get();
-            Calendar now = Calendar.getInstance();
-            Calendar anchor = MyWidgetProvider.debugMidnight(now);
-            String[] cycle = {"白班"};
-            Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
-            MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
-            FrameLayout surface = new FrameLayout(activity);
-            activity.setContentView(surface);
-            View view = null;
-            for (int width : new int[]{215, 216, 320, 110, 224, 180}) {
-                RemoteViews remote = MyWidgetProvider.buildViews(activity, width, 110, now, slot, anchor,
-                        cycle, defs, MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs));
-                if (view == null) {
-                    view = remote.apply(activity, surface);
-                    surface.addView(view);
-                } else {
-                    remote.reapply(activity, view);
-                }
-                surface.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                        View.MeasureSpec.makeMeasureSpec(110, View.MeasureSpec.EXACTLY));
-                surface.layout(0, 0, width, 110);
-                assertCompanionPresentation(view, width >= 216, "resize " + width);
-                for (int id : new int[]{R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
-                    assertWithinBounds(view, id, "resize " + width);
-                    assertWholeText(view, id, "resize " + width);
-                }
+    @Test public void restAndFiveDigitCountdownsHaveNoClippedNumbers() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for(int[] size:new int[][]{{110,110},{184,184},{360,128},{304,320}}) {
+                View root=WidgetRenderFixture.render(c.get(),c.get(),size[0],size[1],"休息",28,-1);
+                assertEquals(View.VISIBLE,root.findViewById(R.id.countdown_text).getVisibility());
+                assertEquals("—",((TextView)root.findViewById(R.id.countdown_text)).getText().toString());
+                root=WidgetRenderFixture.render(c.get(),c.get(),size[0],size[1],"白班",28,3659L*86400000L);
+                TextView timer=root.findViewById(R.id.countdown_chronometer);
+                assertTrue(timer.getText().toString(),timer.getText().toString().matches("[0-9]{5}:[0-9]{2}:[0-9]{2}"));
+                assertTrue(timer.getPaint().measureText(timer.getText().toString())<=timer.getWidth()+1);
             }
         }
     }
-
-    @Test public void oneRemoteViewsPayloadResolvesEitherHostThemeAndRepairsAStalePortrait() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            Activity activity = controller.get();
-            Calendar now = Calendar.getInstance();
-            Calendar anchor = MyWidgetProvider.debugMidnight(now);
-            String[] cycle = {"夜班"};
-            Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
-            MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
-            RemoteViews remote = MyWidgetProvider.buildViews(activity, 320, 320, now, slot, anchor,
-                    cycle, defs, MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs));
-            for (boolean dark : new boolean[]{false, true, false}) {
-                Configuration config = new Configuration(activity.getResources().getConfiguration());
-                config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
-                        | (dark ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
-                Context host = activity.createConfigurationContext(config);
-                FrameLayout surface = new FrameLayout(host);
-                View view = remote.apply(host, surface);
-                ImageView image = view.findViewById(R.id.companion_portrait);
-                Bitmap expected = ((BitmapDrawable) host.getDrawable(dark
-                        ? R.drawable.widget_companion_night : R.drawable.widget_companion_day)).getBitmap();
-                assertTrue("Host theme wins over provider theme", expected.sameAs(((BitmapDrawable) image.getDrawable()).getBitmap()));
-                image.setImageResource(dark ? R.drawable.widget_companion_day : R.drawable.widget_companion_night);
-                remote.reapply(host, view);
-                assertTrue("Reapply must not retain the old avatar", expected.sameAs(((BitmapDrawable) image.getDrawable()).getBitmap()));
+    @Test public void previousNightsWorkRangeAndCountdownStayOnTheEffectiveShift() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Calendar now=Calendar.getInstance();
+            now.set(2026,Calendar.OCTOBER,20,1,10,0);now.set(Calendar.MILLISECOND,0);
+            android.os.SystemClock.setCurrentTimeMillis(now.getTimeInMillis());
+            Calendar anchor=MyWidgetProvider.debugMidnight(now);anchor.add(Calendar.DAY_OF_YEAR,-1);
+            Map<String,MyWidgetProvider.ShiftDef> defs=MyWidgetProvider.debugDefaultDefs();
+            String[] cycle={"夜班","休息"};
+            MyWidgetProvider.ShiftSlot slot=MyWidgetProvider.debugEffectiveSlot(now,anchor,cycle,defs);
+            MyWidgetProvider.Countdown countdown=MyWidgetProvider.countdownAt(now,slot,anchor,cycle,defs);
+            for(int[] size:new int[][]{{184,184},{360,128},{304,320}}) {
+                RemoteViews views=MyWidgetProvider.buildViews(c.get(),WidgetRenderFixture.sampleForm(size[0],size[1]),size[0],size[1],now,slot,anchor,cycle,defs,countdown,28);
+                WidgetTestClock.alignCountdown(views,now,countdown);
+                FrameLayout host=new FrameLayout(c.get());c.get().setContentView(host);
+                View root=views.apply(c.get(),host);host.addView(root);
+                WidgetRenderFixture.measure(host,size[0],size[1]);
+                assertEquals("夜班",((TextView)root.findViewById(R.id.shift_name)).getText().toString());
+                assertEquals("昨 20:00–今 08:00",root.findViewById(R.id.shift_time).getContentDescription().toString());
+                assertEquals("距下班",((TextView)root.findViewById(R.id.countdown_label)).getText().toString());
+                assertEquals("06:50:00",((TextView)root.findViewById(R.id.countdown_chronometer)).getText().toString());
             }
         }
     }
-
-    @Test @Config(qualifiers = "zh-rCN-xhdpi")
-    public void phoneDensityCompanionsRenderWithWorkingAndOvernightShifts() throws Exception {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            Activity activity = controller.get();
-            Bitmap[] samples = new Bitmap[2];
-            for (boolean dark : new boolean[]{false, true}) {
-                Configuration config = new Configuration(activity.getResources().getConfiguration());
-                config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
-                        | (dark ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
-                config.fontScale = 1.3f;
-                Context context = activity.createConfigurationContext(config);
-                Calendar now = Calendar.getInstance();
-                Calendar anchor = MyWidgetProvider.debugMidnight(now);
-                for (String shift : new String[]{"白班", "夜班"}) {
-                    for (int[] size : new int[][]{{110,110}, {156,216}, {216,110}, {224,144}, {240,180}, {216,216}, {224,216}, {240,240}, {280,216}, {320,216}, {360,110}, {360,216}, {224,320}, {320,320}, {500,320}}) {
-                        View view = render(activity, context, size[0], size[1], now, anchor,
-                                new String[]{shift}, MyWidgetProvider.debugDefaultDefs());
-                        assertCompanionPresentation(view, MyWidgetProvider.showsCompanion(size[0], size[1]), "working phone density");
-                        for (int id : new int[]{R.id.shift_name, R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
-                            assertWithinBounds(view, id, "working phone density");
-                        }
-                        for (int id : new int[]{R.id.shift_name, R.id.live_clock, R.id.countdown_chronometer}) {
-                            assertWholeText(view, id, "working phone density");
-                        }
-                        File directory = new File("../.qa/widget-previews");
-                        directory.mkdirs();
-                        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-                        view.draw(new Canvas(bitmap));
-                        String name = "companion-" + size[0] + "x" + size[1] + (dark ? "-dark-" : "-light-") + shift + ".png";
-                        try (FileOutputStream out = new FileOutputStream(new File(directory, name))) {
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                        }
-                        if (size[0] == 240 && size[1] == 240 && "白班".equals(shift)) {
-                            samples[dark ? 1 : 0] = bitmap.copy(Bitmap.Config.ARGB_8888, false);
-                        }
-                        bitmap.recycle();
-                    }
-                }
-            }
-            Bitmap comparison = Bitmap.createBitmap(samples[0].getWidth() * 2 + 24,
-                    samples[0].getHeight(), Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(comparison);
-            canvas.drawBitmap(samples[0], 0, 0, null);
-            canvas.drawBitmap(samples[1], samples[0].getWidth() + 24, 0, null);
-            try (FileOutputStream out = new FileOutputStream("../.qa/widget-previews/companion-width-led-themes.png")) {
-                comparison.compress(Bitmap.CompressFormat.PNG, 100, out);
-            }
-            comparison.recycle();
-            for (Bitmap sample : samples) sample.recycle();
-        }
-    }
-
-    private void assertWholeText(View root, int id, String variant) {
-        TextView text = root.findViewById(id);
-        if (text.getVisibility() != View.VISIBLE) return;
-        int available = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
-        assertTrue(variant + " text clips horizontally: " + root.getResources().getResourceEntryName(id)
-                + " text=" + text.getText() + " available=" + available,
-                text.getPaint().measureText(text.getText().toString()) <= available);
-        assertEquals(variant + " ellipsized: " + root.getResources().getResourceEntryName(id),
-                0, text.getLayout().getEllipsisCount(0));
-    }
-
-    @Test public void miniLayoutsHandleOvernightRestAndFiveDigitHours() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            Activity activity = controller.get();
-            Calendar now = Calendar.getInstance();
-            Calendar anchor = MyWidgetProvider.debugMidnight(now);
-            Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
-            MyWidgetProvider.ShiftDef night = defs.get("夜班");
-            for (int[] size : new int[][]{{110,110}, {224,110}, {216,216}, {240,240}, {320,216}, {360,110}, {360,216}, {500,320}}) {
-                night.startTime = "00:00";
-                night.endTime = "23:59";
-                night.crossDay = true;
-                View view = render(activity, activity, size[0], size[1], now, anchor, new String[]{"夜班"}, defs);
-                assertTrue(((TextView) view.findViewById(R.id.shift_time)).getContentDescription().toString().startsWith("昨日 "));
-                for (int id : new int[]{R.id.shift_time, R.id.live_clock, R.id.countdown_chronometer}) {
-                    assertWithinBounds(view, id, "overnight");
-                    assertWholeText(view, id, "overnight");
-                }
-                night.startTime = "08:00";
-                night.endTime = "20:00";
-                night.crossDay = false;
-                String[] longCycle = new String[3660];
-                java.util.Arrays.fill(longCycle, "休息");
-                longCycle[3659] = "夜班";
-                view = render(activity, activity, size[0], size[1], now, anchor, longCycle, defs);
-                assertTrue(((Chronometer) view.findViewById(R.id.countdown_chronometer)).getText().toString()
-                        .matches("[0-9]{5}:[0-9]{2}:[0-9]{2}"));
-                assertWithinBounds(view, R.id.countdown_chronometer, "long hours");
-                assertWholeText(view, R.id.countdown_chronometer, "long hours");
-                view = render(activity, activity, size[0], size[1], now, anchor, new String[]{"休息"}, defs);
-                assertEquals(View.GONE, view.findViewById(R.id.countdown_chronometer).getVisibility());
-                assertWithinBounds(view, R.id.countdown_text, "all rest");
-                assertWithinBounds(view, R.id.countdown_label, "all rest");
+    @Test public void longestSupportedCycleKeepsItsCompactPositionAndFullAccessibleDescription() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Calendar now=Calendar.getInstance();now.set(2026,Calendar.OCTOBER,19,12,0,0);now.set(Calendar.MILLISECOND,0);
+            android.os.SystemClock.setCurrentTimeMillis(now.getTimeInMillis());
+            Calendar anchor=MyWidgetProvider.debugMidnight(now);anchor.add(Calendar.DAY_OF_YEAR,-3659);
+            String[] cycle=new String[3660];java.util.Arrays.fill(cycle,"白班");
+            Map<String,MyWidgetProvider.ShiftDef> defs=MyWidgetProvider.debugDefaultDefs();
+            MyWidgetProvider.ShiftSlot slot=MyWidgetProvider.debugEffectiveSlot(now,anchor,cycle,defs);
+            MyWidgetProvider.Countdown countdown=MyWidgetProvider.countdownAt(now,slot,anchor,cycle,defs);
+            for(int width:new int[]{224,304}) {
+                RemoteViews views=MyWidgetProvider.buildViews(c.get(),WidgetRenderer.Form.FULL,width,320,now,slot,anchor,cycle,defs,countdown,28);
+                WidgetTestClock.alignCountdown(views,now,countdown);
+                FrameLayout host=new FrameLayout(c.get());c.get().setContentView(host);
+                View root=views.apply(c.get(),host);host.addView(root);
+                WidgetRenderFixture.measure(host,width,320);
+                TextView position=root.findViewById(R.id.cycle_info);
+                assertEquals("周期 3660/3660",position.getText().toString());
+                assertTrue(position.getContentDescription().toString(),position.getContentDescription().toString().contains("3660"));
+                assertTrue(position.getPaint().measureText(position.getText().toString())<=position.getWidth()+1);
+                assertEquals(3660,((ProgressBar)root.findViewById(R.id.progress_bar)).getProgress());
             }
         }
     }
-
-    @Test @Config(qualifiers = "zh-rCN-xhdpi")
-    public void minimumAlsoFitsPhoneDensityAndLargeFonts() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            for (int[] size : new int[][]{{110,110}, {110,128}, {224,110}}) {
-                View view = render(controller.get(), size[0], size[1], true, 1.3f);
-                for (int id : new int[]{R.id.today_date, R.id.shift_emoji, R.id.shift_name, R.id.shift_time,
-                        R.id.progress_bar, R.id.live_clock, R.id.countdown_label, R.id.countdown_chronometer}) {
-                    assertWithinBounds(view, id, "phone density");
-                }
-                assertWholeText(view, R.id.live_clock, "phone density");
-                assertWholeText(view, R.id.countdown_chronometer, "phone density");
+    @Test public void onePayloadCanReloadItsBackgroundAndPortraitForAnotherHostTheme() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            RemoteViews views=WidgetRenderFixture.views(c.get(),304,320,"白班",28,-1);
+            Context light=WidgetRenderFixture.context(c.get(),false,1),dark=WidgetRenderFixture.context(c.get(),true,1);
+            View a=views.apply(light,new FrameLayout(light)),b=views.apply(dark,new FrameLayout(dark));
+            assertNotEquals(((TextView)a.findViewById(R.id.live_clock)).getCurrentTextColor(),((TextView)b.findViewById(R.id.live_clock)).getCurrentTextColor());
+            android.util.TypedValue value=new android.util.TypedValue();
+            dark.getResources().getValue(R.drawable.widget_companion,value,true);
+            assertTrue(value.string.toString(),value.string.toString().contains("widget_companion_night"));
+        }
+    }
+    private void drawCard(Activity activity, Canvas board, Context context, int w,int h,int x,int y) {
+        View root=WidgetRenderFixture.render(activity,context,w,h,"白班",28,-1);
+        assertCore(root);
+        Bitmap bitmap=Bitmap.createBitmap(root.getWidth(),root.getHeight(),Bitmap.Config.ARGB_8888);
+        root.draw(new Canvas(bitmap)); board.drawBitmap(bitmap,x,y,null); bitmap.recycle();
+    }
+    @Test public void initialPickerLayoutsAlreadyContainTheReferenceGroupGeometry() {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for(WidgetRenderer.Form form:WidgetRenderer.Form.values()) {
+                FrameLayout host=new FrameLayout(c.get());c.get().setContentView(host);
+                View root=new RemoteViews(c.get().getPackageName(),form.layout).apply(c.get(),host);
+                host.addView(root);WidgetRenderFixture.measure(host,(int)form.width,(int)form.height);
+                Rect hero=WidgetRenderFixture.bounds(root,R.id.hero_section);
+                Rect expected=form==WidgetRenderer.Form.MINIMUM?new Rect(12,34,116,60)
+                        :form==WidgetRenderer.Form.COMPACT?new Rect(16,54,168,90)
+                        :form==WidgetRenderer.Form.WIDE?new Rect(16,56,140,112):new Rect(20,78,284,158);
+                assertEquals(expected,hero);
+                assertEquals(48,root.findViewById(R.id.refresh_touch_target).getWidth());
+                assertEquals(48,root.findViewById(R.id.refresh_touch_target).getHeight());
+                assertEquals(26,root.findViewById(R.id.refresh_button).getWidth());
             }
         }
     }
-
-    @Test public void miniTimersAlsoTickWithoutProviderUpdates() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            for (int width : new int[]{110, 224}) {
-                View view = render(controller.get(), width, 110, false, 1.3f);
-                Chronometer countdown = view.findViewById(R.id.countdown_chronometer);
-                String clockBefore = ((TextClock) view.findViewById(R.id.live_clock)).getText().toString();
-                String timerBefore = countdown.getText().toString();
-                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(
-                        2200, java.util.concurrent.TimeUnit.MILLISECONDS);
-                assertNotEquals(clockBefore, ((TextClock) view.findViewById(R.id.live_clock)).getText().toString());
-                assertNotEquals(timerBefore, countdown.getText().toString());
+    @Test @Config(qualifiers="zh-rCN-xhdpi") public void exportOneFullFormUnderIndependentAxisChanges() throws Exception {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Context context=WidgetRenderFixture.context(c.get(),false,1);
+            Bitmap board=Bitmap.createBitmap(2128,880,Bitmap.Config.ARGB_8888);
+            Canvas canvas=new Canvas(board);canvas.drawColor(Color.rgb(226,231,238));
+            Paint label=new Paint(Paint.ANTI_ALIAS_FLAG);label.setColor(Color.DKGRAY);label.setTextSize(20);
+            canvas.drawText("FULL 304 x 320 dp",16,30,label);
+            canvas.drawText("WIDTH ONLY 400 x 320 dp",656,30,label);
+            canvas.drawText("HEIGHT ONLY 304 x 400 dp",1488,30,label);
+            drawCard(c.get(),canvas,context,304,320,16,48);
+            drawCard(c.get(),canvas,context,400,320,656,48);
+            drawCard(c.get(),canvas,context,304,400,1488,48);
+            File dir=new File("../.qa/widget-previews");dir.mkdirs();
+            try(FileOutputStream out=new FileOutputStream(new File(dir,"proportional-native-axis-comparison.png"))) {
+                board.compress(Bitmap.CompressFormat.PNG,100,out);
             }
+            board.recycle();
         }
     }
-
-    @Test public void timersAreHostDrivenNativeViewsWithAValidElapsedRealtimeBase() {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            View view = render(controller.get(), 320, 320, false, 1);
-            assertTrue(view.findViewById(R.id.live_clock) instanceof TextClock);
-            Chronometer countdown = view.findViewById(R.id.countdown_chronometer);
-            assertTrue(countdown.isCountDown());
-            assertTrue(countdown.getBase() > android.os.SystemClock.elapsedRealtime());
-            String clockBefore = ((TextClock) view.findViewById(R.id.live_clock)).getText().toString();
-            String countdownBefore = countdown.getText().toString();
-            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(
-                    2200, java.util.concurrent.TimeUnit.MILLISECONDS);
-            assertNotEquals(clockBefore, ((TextClock) view.findViewById(R.id.live_clock)).getText().toString());
-            assertNotEquals(countdownBefore, countdown.getText().toString());
+    @Test @Config(qualifiers="zh-rCN-xhdpi") public void exportNativeReferenceBoardsInLightAndDark() throws Exception {
+        try(ActivityController<Activity> c=Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for(boolean dark:new boolean[]{false,true}) {
+                Context context=WidgetRenderFixture.context(c.get(),dark,dark?2:1);
+                Bitmap board=Bitmap.createBitmap(1392,752,Bitmap.Config.ARGB_8888); Canvas canvas=new Canvas(board);
+                canvas.drawColor(dark?Color.rgb(11,20,33):Color.rgb(226,231,238));
+                Paint label=new Paint(Paint.ANTI_ALIAS_FLAG);label.setColor(dark?Color.LTGRAY:Color.DKGRAY);label.setTextSize(20);
+                canvas.drawText("COMPACT 184 x 184 dp",16,30,label);drawCard(c.get(),canvas,context,184,184,16,48);
+                canvas.drawText("MINIMUM 110 x 110 dp",420,76,label);drawCard(c.get(),canvas,context,110,110,420,96);
+                canvas.drawText("WIDE 360 x 128 dp",16,460,label);drawCard(c.get(),canvas,context,360,128,16,480);
+                canvas.drawText("FULL 304 x 320 dp",768,30,label);drawCard(c.get(),canvas,context,304,320,768,48);
+                File dir=new File("../.qa/widget-previews");dir.mkdirs();
+                try(FileOutputStream out=new FileOutputStream(new File(dir,"proportional-native-"+(dark?"dark":"light")+".png"))) {board.compress(Bitmap.CompressFormat.PNG,100,out);}
+                board.recycle();
+            }
         }
     }
 }
