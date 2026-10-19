@@ -3,6 +3,11 @@ package com.example.myapp;
 import static org.junit.Assert.*;
 
 import android.app.AlarmManager;
+import android.appwidget.AppWidgetManager;
+import android.content.Intent;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.widget.TextView;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -34,7 +39,7 @@ public class WidgetRefreshTest {
         Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
         long boundary = System.currentTimeMillis() + 123000;
         WidgetRefresh.schedule(context, boundary);
-        assertEquals(2, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
         ShadowAlarmManager.ScheduledAlarm event = Shadows.shadowOf(alarms).getScheduledAlarms().stream()
                 .filter(alarm -> alarm.triggerAtTime == boundary).findFirst().orElseThrow(AssertionError::new);
         assertEquals(AlarmManager.RTC_WAKEUP, event.type);
@@ -48,9 +53,96 @@ public class WidgetRefreshTest {
         Shadows.shadowOf(alarms).setCanScheduleExactAlarms(false);
         assertFalse(WidgetRefresh.canScheduleExact(context));
         WidgetRefresh.schedule(context, System.currentTimeMillis() + 123000);
-        assertEquals(2, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
         WidgetRefresh.cancel(context);
         assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().isEmpty());
+    }
+
+    @Test public void hostRecoveryIsNonWakingAndDoesNotOverwriteTheStateBoundary() {
+        Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
+        long now = System.currentTimeMillis();
+        long boundary = now + 123_000;
+        WidgetRefresh.schedule(context, boundary);
+        WidgetRefresh.scheduleRecovery(context);
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+        ShadowAlarmManager.ScheduledAlarm retry = Shadows.shadowOf(alarms).getScheduledAlarms().stream()
+                .filter(alarm -> WidgetRefresh.ACTION_RECOVER.equals(
+                        Shadows.shadowOf(alarm.operation).getSavedIntent().getAction()))
+                .findFirst().orElseThrow(AssertionError::new);
+        assertEquals(AlarmManager.RTC, retry.type);
+        assertFalse(retry.allowWhileIdle);
+        assertEquals(0, retry.interval);
+        assertEquals(0, retry.getWindowLengthMs());
+        assertEquals(now + WidgetRefresh.RECOVERY_INTERVAL_MS, retry.triggerAtTime);
+        assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().stream()
+                .anyMatch(alarm -> alarm.triggerAtTime == boundary && alarm.type == AlarmManager.RTC_WAKEUP));
+    }
+
+    @Test public void deniedExactAccessAlsoDegradesTheRecoveryAlarmWithoutWaking() {
+        Shadows.shadowOf(alarms).setCanScheduleExactAlarms(false);
+        WidgetRefresh.scheduleRecovery(context);
+        ShadowAlarmManager.ScheduledAlarm retry = Shadows.shadowOf(alarms).getScheduledAlarms().get(0);
+        assertEquals(AlarmManager.RTC, retry.type);
+        assertFalse(retry.allowWhileIdle);
+        assertNotEquals(0, retry.getWindowLengthMs());
+    }
+
+    @Test public void recoveryWithoutWidgetsCancelsAllOutstandingAlarms() {
+        WidgetRefresh.schedule(context, System.currentTimeMillis() + 123_000);
+        WidgetRefresh.recover(context);
+        assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().isEmpty());
+    }
+
+    @Test public void pendingRecoveryBroadcastRebindsVisibleWidgetsAndSchedulesAnotherRetry() throws Exception {
+        Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
+        Shadows.shadowOf((PowerManager) context.getSystemService(Context.POWER_SERVICE)).setIsInteractive(true);
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
+                .setText("stale countdown");
+        ShadowAlarmManager.ScheduledAlarm retry = recoveryAlarm();
+        retry.operation.send();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertNotEquals("stale countdown", ((TextView) Shadows.shadowOf(manager).getViewFor(id)
+                .findViewById(R.id.countdown_label)).getText().toString());
+        assertNotSame(retry, recoveryAlarm());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+    }
+
+    @Test public void recoveryWhileScreenIsOffKeepsARetryWithoutRedrawingWidgets() throws Exception {
+        Shadows.shadowOf(alarms).setCanScheduleExactAlarms(true);
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
+                .setText("screen off");
+        Shadows.shadowOf((PowerManager) context.getSystemService(Context.POWER_SERVICE)).setIsInteractive(false);
+        ShadowAlarmManager.ScheduledAlarm retry = recoveryAlarm();
+        retry.operation.send();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("screen off", ((TextView) Shadows.shadowOf(manager).getViewFor(id)
+                .findViewById(R.id.countdown_label)).getText().toString());
+        assertNotSame(retry, recoveryAlarm());
+        assertEquals(3, Shadows.shadowOf(alarms).getScheduledAlarms().size());
+    }
+
+    @Test public void manualRefreshDoesNotWaitForTheLastAnimationAlarm() {
+        Shadows.shadowOf(alarms).setCanScheduleExactAlarms(false);
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        int id = Shadows.shadowOf(manager).createWidget(MyWidgetProvider.class, R.layout.widget_layout_mini);
+        ((TextView) Shadows.shadowOf(manager).getViewFor(id).findViewById(R.id.countdown_label))
+                .setText("stale countdown");
+        new MyWidgetProvider().onReceive(context, new Intent(context, MyWidgetProvider.class)
+                .setAction(WidgetRefresh.ACTION_SPIN_START));
+        assertNotEquals("stale countdown", ((TextView) Shadows.shadowOf(manager).getViewFor(id)
+                .findViewById(R.id.countdown_label)).getText().toString());
+        assertTrue(Shadows.shadowOf(alarms).getScheduledAlarms().size() > 3);
+    }
+
+    private ShadowAlarmManager.ScheduledAlarm recoveryAlarm() {
+        return Shadows.shadowOf(alarms).getScheduledAlarms().stream()
+                .filter(alarm -> WidgetRefresh.ACTION_RECOVER.equals(
+                        Shadows.shadowOf(alarm.operation).getSavedIntent().getAction()))
+                .findFirst().orElseThrow(AssertionError::new);
     }
 
     @Test public void emptyDefinitionsDoNotReintroduceDeletedDefaultShiftDefinitions() {

@@ -31,8 +31,13 @@
     <color name="widget_panel">#EBEDF6</color>
     <color name="widget_stroke">#D8DBE9</color>
     <color name="widget_ink">#34364E</color>
-    <color name="widget_muted">#70768D</color>
-    <color name="widget_accent">#786695</color>
+    <!--
+      次要文字与强调色：按 WCAG AA（正文 4.5）取最差背景下的对比度门槛。
+      旧值 #70768D / #786695 在 widget_panel(#EBEDF6) 上只有 3.85 / 4.35，小字号会发灰。
+      新值最差对比度：widget_muted 5.34、widget_accent 5.04（背景取 surface/surface_end/panel/badge 中最差者）。
+    -->
+    <color name="widget_muted">#5A6076</color>
+    <color name="widget_accent">#6E5C8B</color>
     <color name="widget_orbit">#BCC5DF</color>
     <color name="widget_badge">#EEF1F7</color>
 </resources>

@@ -9,7 +9,8 @@ http.createServer(async (req,res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
     const relative = pathname === '/' ? 'index.html' : pathname.slice(1);
-    if (!(relative === 'index.html' || relative === 'avatar.png' || /^assets\/[\w.-]+$/.test(relative))) { res.writeHead(404);res.end('Not found');return; }
+    // 网页内核自 v2 起由 ES module 启动，只需提供入口页与 assets/ 静态文件。
+    if (!(relative === 'index.html' || /^assets\/[\w.-]+$/.test(relative))) { res.writeHead(404);res.end('Not found');return; }
     const file = await fs.readFile(path.join(root,relative));
     res.writeHead(200,{'Content-Type':mime[path.extname(relative)] || 'application/octet-stream','Cache-Control':'no-store'});res.end(file);
   } catch (_) { res.writeHead(404);res.end('Not found'); }

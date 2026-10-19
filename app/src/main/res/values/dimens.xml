@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared RemoteViews geometry and design type scales.
+  Insets are minimums; the provider adds root padding for a larger system corner radius.
+  Desired type sizes use these scales and are applied as dp at runtime, keeping fixed-height
+  cards stable under Android 14 non-linear font scaling. Actual strings determine final fitting.
+  Fixed gaps bind related information; weighted gaps separate independent reading groups.
+-->
+<resources>
+
+    <!-- ==================== 圆角安全区 ==================== -->
+
+    <!-- 基础内边距 B：四边统一，内容距卡片直边的最小距离。 -->
+    <dimen name="widget_inset_mini">10dp</dimen>
+    <dimen name="widget_inset_small">12dp</dimen>
+    <dimen name="widget_inset_full">14dp</dimen>
+
+
+    <!-- 宿主的圆角半径，同时也是「安全区」半径；装饰图之外的内容都要落在里面。 -->
+    <dimen name="widget_corner_radius">28dp</dimen>
+
+    <!-- 刷新按钮：26dp 触控区，定位到距右 B、距顶 B。 -->
+    <dimen name="widget_refresh_size">26dp</dimen>
+    <dimen name="widget_refresh_padding_mini">4dp</dimen>
+    <dimen name="widget_refresh_padding_full">5dp</dimen>
+
+    <!-- ==================== mini / mini_wide（短边 < 180dp） ==================== -->
+    <dimen name="widget_rhythm_mini_1">2dp</dimen>
+    <dimen name="widget_rhythm_mini_2">4dp</dimen>
+    <dimen name="widget_rhythm_mini_3">6dp</dimen>
+    <dimen name="widget_rhythm_mini_4">8dp</dimen>
+    <dimen name="widget_pad_block_mini">4dp</dimen>
+    <dimen name="widget_progress_mini">2dp</dimen>
+
+    <!-- ==================== small / companion ==================== -->
+    <dimen name="widget_rhythm_small_1">3dp</dimen>
+    <dimen name="widget_rhythm_small_2">5dp</dimen>
+    <dimen name="widget_rhythm_small_3">7dp</dimen>
+    <dimen name="widget_rhythm_small_4">9dp</dimen>
+    <dimen name="widget_pad_block_small">6dp</dimen>
+    <dimen name="widget_progress_small">3dp</dimen>
+
+    <!-- ==================== wide / full ==================== -->
+    <dimen name="widget_rhythm_full_1">4dp</dimen>
+    <dimen name="widget_rhythm_full_2">6dp</dimen>
+    <dimen name="widget_rhythm_full_3">8dp</dimen>
+    <dimen name="widget_rhythm_full_4">12dp</dimen>
+    <dimen name="widget_pad_block_full">10dp</dimen>
+    <dimen name="widget_progress_full">4dp</dimen>
+
+    <!-- 伴侣立绘所在侧栏与内容之间的最小间隔。 -->
+    <dimen name="widget_companion_gap_mini">6dp</dimen>
+    <dimen name="widget_companion_gap_small">8dp</dimen>
+    <dimen name="widget_companion_gap_full">12dp</dimen>
+
+    <!-- ==================== 字号阶梯（sp） ==================== -->
+    <!-- 阶梯共 6 级：0 最小 .. 5 最大。布局里写第 0 级作为静态兜底，Provider 运行时按档位覆盖。 -->
+    <dimen name="widget_text_date_0">9sp</dimen>
+    <dimen name="widget_text_date_1">10sp</dimen>
+    <dimen name="widget_text_date_2">11sp</dimen>
+    <dimen name="widget_text_date_3">12sp</dimen>
+
+    <dimen name="widget_text_label_0">9sp</dimen>
+    <dimen name="widget_text_label_1">10sp</dimen>
+    <dimen name="widget_text_label_2">11sp</dimen>
+
+    <dimen name="widget_text_name_0">16sp</dimen>
+    <dimen name="widget_text_name_1">18sp</dimen>
+    <dimen name="widget_text_name_2">22sp</dimen>
+    <dimen name="widget_text_name_3">26sp</dimen>
+    <dimen name="widget_text_name_4">32sp</dimen>
+    <dimen name="widget_text_name_5">40sp</dimen>
+
+    <dimen name="widget_text_timer_0">14sp</dimen>
+    <dimen name="widget_text_timer_1">18sp</dimen>
+    <dimen name="widget_text_timer_2">22sp</dimen>
+    <dimen name="widget_text_timer_3">28sp</dimen>
+    <dimen name="widget_text_timer_4">34sp</dimen>
+
+    <dimen name="widget_text_detail_0">8sp</dimen>
+    <dimen name="widget_text_detail_1">9sp</dimen>
+    <dimen name="widget_text_detail_2">10sp</dimen>
+
+    <dimen name="widget_text_emoji_0">16sp</dimen>
+    <dimen name="widget_text_emoji_1">18sp</dimen>
+    <dimen name="widget_text_emoji_2">20sp</dimen>
+
+    <!-- 首行为刷新按钮让出的宽度 = 按钮 26dp + 一个节拍。 -->
+    <dimen name="widget_header_reserve_mini">28dp</dimen>
+    <dimen name="widget_header_reserve_small">29dp</dimen>
+    <dimen name="widget_header_reserve_full">32dp</dimen>
+
+    <!-- 伴侣侧栏：固定列宽，避免运行时才知道宽度导致排版无法静态推导。 -->
+    <dimen name="widget_portrait_mini">72dp</dimen>
+    <dimen name="widget_portrait_small">76dp</dimen>
+    <dimen name="widget_portrait_wide">88dp</dimen>
+
+
+    <!-- 未来七天徽标 -->
+    <dimen name="widget_week_badge_height">44dp</dimen>
+    <dimen name="widget_week_badge_gap">3dp</dimen>
+
+    <!-- 立绘列宽 / 高度（mini 档）：高度取 64dp，配合底部对齐让立绘始终避开右上角按钮。 -->
+    <dimen name="widget_portrait_height_mini">64dp</dimen>
+    <!-- Short-wide portraits shrink with the available height below their 26dp header. -->
+    <dimen name="widget_portrait_height_mini_wide">68dp</dimen>
+    <!-- 立绘与卡片上下边（内容壳内）之间的留白：让立绘不满幅，避免顶到圆角弧线。 -->
+    <dimen name="widget_portrait_inset_mini_wide">6dp</dimen>
+    <!-- 矮宽档数据行的标签列宽：容得下「距下班」三个汉字（9sp × 3 + 余量）。 -->
+    <dimen name="widget_data_label_mini_wide">36dp</dimen>
+    <!-- Top reserve for the independent refresh control. -->
+    <dimen name="widget_portrait_reserve_mini_wide">30dp</dimen>
+    <dimen name="widget_emoji_box_mini">22dp</dimen>
+    <dimen name="widget_emoji_box_small">24dp</dimen>
+    <dimen name="widget_emoji_box_full">28dp</dimen>
+
+    <dimen name="widget_text_clock_0">14sp</dimen>
+    <dimen name="widget_text_clock_1">16sp</dimen>
+    <dimen name="widget_text_clock_2">18sp</dimen>
+    <dimen name="widget_text_clock_3">22sp</dimen>
+    <dimen name="widget_text_clock_4">26sp</dimen>
+    <dimen name="widget_text_clock_5">30sp</dimen>
+
+    <dimen name="widget_portrait_height_full">80dp</dimen>
+
+    <!-- companion 档立绘高度：底部对齐，需始终低于右上角 26dp 刷新按钮。 -->
+    <dimen name="widget_portrait_height_companion">72dp</dimen>
+
+</resources>

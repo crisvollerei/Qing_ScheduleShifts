@@ -1,0 +1,1 @@
+{"app":"qingzheng-schedule","version":1,"exportedAt":"2026-10-19T08:00:00.000Z","config":{"version":1,"anchor":"2026-10-19","cycle":["休息"],"shiftDefs":{"休息":{"emoji":"休","cssClass":"rest","isWork":false,"crossDay":false}}},"presets":[],"personalization":{"title":"清蒸排班"}}

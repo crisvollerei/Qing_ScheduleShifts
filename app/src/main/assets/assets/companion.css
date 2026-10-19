@@ -21,19 +21,23 @@
 .workspace-grid > .calendar-section { grid-column: 1; grid-row: 1 / span 2; }
 .workspace-grid > .sidebar { grid-column: 2; grid-row: 2; }
 .companion {
+  --bubble-height: 162px;
   grid-column: 2;
   grid-row: 1;
   position: relative;
   isolation: isolate;
   align-self: start;
   min-width: 0;
-  min-height: 190px;
+  height: calc(var(--bubble-height) + 39px);
   padding: 5px 88px 0 0;
   color: var(--companion-ink);
 }
 .companion-bubble {
   position: relative;
-  min-height: 146px;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  row-gap: 7px;
+  height: var(--bubble-height);
   padding: 12px 19px 15px 14px;
   border: 1px solid var(--companion-line);
   border-radius: 17px 18px 5px 18px;
@@ -60,7 +64,9 @@
 .companion-heading { display: flex; align-items: center; gap: 5px; font-size: 12px; line-height: 1.6; white-space: nowrap; }
 .companion-sigil { font-size: 15px; }
 .companion-heading-note { font-size: 10px; opacity: .8; }
-.companion-message { margin-top: 7px; font-size: 14px; line-height: 1.95; overflow-wrap: anywhere; }
+/* Reserve the conversation window; unusually long custom names scroll inside it. */
+.companion-message { align-self: center; min-height: 0; max-height: 100%; margin-top: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: var(--companion-line) transparent; font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; }
+.companion-message:focus-visible { outline-offset: 2px; border-radius: 3px; }
 .companion-time {
   display: inline-block;
   padding: 1px 3px;
@@ -79,7 +85,7 @@
 .companion-character {
   position: absolute;
   right: -2px;
-  bottom: 9px;
+  bottom: 40px;
   width: 106px;
   height: 116px;
   border-radius: 48% 48% 30% 30%;
@@ -108,34 +114,61 @@
 .companion-toggle { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 2px 7px; border-radius: 8px; background: transparent; color: inherit; font-size: 11px; }
 .companion-toggle:hover { background: var(--companion-wash); }
 .companion-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.companion.is-collapsed { min-height: 75px; padding-top: 21px; }
+.companion.is-collapsed { height: 75px; padding-top: 21px; }
 .companion.is-collapsed .companion-character { width: 72px; height: 78px; bottom: 0; }
 .companion.is-collapsed .companion-portrait { height: 72px; }
 .companion.is-collapsed .companion-foot { justify-content: flex-end; padding-right: 30px; }
 .companion.is-collapsed .companion-hint { display: none; }
 
+/* Let date rows and agenda rows absorb column differences, not the outer gutter. */
+@media (min-width: 961px) {
+  .workspace-grid > .calendar-section { align-self: stretch; display: flex; flex-direction: column; }
+  .calendar-section > .calendar { display: flex; flex-direction: column; flex: 1; }
+  .calendar-section .days-grid { flex: 1; }
+  .workspace-grid > .sidebar { align-self: stretch; position: static; }
+  .sidebar > .upcoming-panel { display: flex; flex-direction: column; flex: 1; }
+  .sidebar .upcoming-list { flex: 1; justify-content: space-between; }
+  .sidebar > .detail-panel.show { display: flex; flex-direction: column; flex: 1; }
+  .sidebar .detail-panel.show .detail-cycle { margin-bottom: 17px; }
+  .sidebar .detail-panel.show .detail-extra { margin-top: auto; }
+}
+
 /* Only float in a genuinely empty margin, including room for the full bubble. */
 @media (min-width: 2070px) and (min-height: 600px) {
   .workspace-grid { grid-template-rows: auto; }
   .workspace-grid > .calendar-section, .workspace-grid > .sidebar { grid-row: 1; }
-  .companion { position: fixed; right: 18px; bottom: max(28px, env(safe-area-inset-bottom)); width: 260px; min-height: 216px; z-index: 20; }
-  .companion-bubble { min-height: 174px; }
+  .companion { --bubble-height: 170px; position: fixed; right: 18px; bottom: max(28px, env(safe-area-inset-bottom)); width: 260px; z-index: 20; }
 }
 @media (max-width: 960px) {
   .workspace-grid { grid-template-rows: auto auto auto; }
   .workspace-grid > .companion { grid-column: 1; grid-row: 1; }
   .workspace-grid > .calendar-section { grid-column: 1; grid-row: 2; }
   .workspace-grid > .sidebar { grid-column: 1; grid-row: 3; }
-  .companion { width: min(100%, 390px); min-height: 156px; justify-self: end; padding-right: 88px; }
-  .companion-bubble { min-height: 115px; padding-right: 22px; }
-  .companion-character { width: 100px; height: 110px; bottom: 0; }
+  .companion { --bubble-height: 105px; width: min(100%, 420px); justify-self: center; padding-right: 88px; }
+  .companion-bubble { padding: 9px 22px 10px 14px; row-gap: 4px; }
+  .companion-message { line-height: 1.8; }
+  .companion-character { width: 100px; height: 110px; bottom: 34px; }
   .companion-portrait { height: 100px; }
   .companion-foot { padding-top: 0; }
   .companion.is-collapsed { width: 145px; }
 }
+@media (min-width: 641px) and (max-width: 960px) {
+  .sidebar { align-items: stretch; }
+  .sidebar > .stats-section { display: flex; flex-direction: column; }
+  .sidebar .stats-container { display: flex; flex-direction: column; justify-content: space-evenly; flex: 1; margin-top: 0; gap: 8px; }
+  .sidebar .stat-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; column-gap: 10px; row-gap: 3px; padding: 10px 12px; }
+  .sidebar .stat-value { grid-column: 2; grid-row: 1 / span 2; margin: 0; font-size: 29px; }
+  .sidebar .stat-label { grid-column: 1; grid-row: 1; }
+  .sidebar .stat-trend { grid-column: 1; grid-row: 2; margin: 0; }
+  .sidebar > .upcoming-panel { display: flex; flex-direction: column; }
+  .sidebar .upcoming-list { flex: 1; justify-content: space-between; }
+}
+@media (max-width: 640px) {
+  .companion { --bubble-height: 128px; }
+}
 @media (max-width: 360px) {
-  .companion { padding-right: 65px; }
-  .companion-character { width: 82px; height: 91px; bottom: 7px; }
+  .companion { --bubble-height: 142px; padding-right: 65px; }
+  .companion-character { width: 82px; height: 91px; bottom: 37px; }
   .companion-portrait { height: 82px; }
   .companion-heading-note { font-size: 9px; }
   .companion-message { font-size: 13px; }

@@ -82,7 +82,8 @@ h2 { font-size: 17px; font-weight: 650; }
 .eyebrow, .section-label { font-size: 13px; color: var(--text-muted); letter-spacing: .5px; }
 .eyebrow { margin-bottom: 4px; }
 .icon-btn { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--bg-card); font-size: 23px; }
-.icon-btn:hover { background: var(--accent-soft); transform: rotate(-7deg); }
+.icon-btn:hover { background: var(--accent-soft); border-color: var(--today-border); }
+.icon-btn:active { transform: scale(.95); }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 39px; padding: 8px 14px; border: 1px solid transparent; border-radius: 9px; font-size: 14px; font-weight: 550; line-height: 1.6; white-space: nowrap; }
 .button:hover { transform: translateY(-2px); }
 .button:active { transform: translateY(0) scale(.98); }
@@ -220,25 +221,34 @@ kbd { display: inline-block; font: 11px ui-monospace, Consolas, monospace; borde
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
 .section-heading h2 { font-size: 15px; font-weight: 600; }
 .section-heading > span { color: var(--text-muted); font-size: 12px; }
-.stats-container { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); row-gap: 18px; }
-.stat-card { position: relative; min-width: 0; padding: 0 10px; border-left: 1px solid var(--border); }
-.stat-card:nth-child(3n+1) { border-left: 0; padding-left: 0; }
-.stat-icon { display: inline-block; margin-bottom: 4px; font-size: 15px; }
-.stat-value { font: 500 27px ui-monospace, Consolas, monospace; letter-spacing: -1px; margin-bottom: 4px; }
-.stat-label { color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
-.stat-trend { color: var(--text-muted); font-size: 10px; margin-top: 3px; }
-.stat-trend.up { color: var(--accent); }
-.stat-trend.down { color: var(--rest-color); }
-.work-hours-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; margin-top: 19px; border-top: 1px solid var(--border); padding-top: 17px; }
-.work-hours-label { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; }
-#workHours { font: 500 29px ui-monospace, Consolas, monospace; letter-spacing: -1px; }
+.stats-container { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.stats-container .stat-card { position: relative; min-width: 0; padding: 10px 8px; border: 1px solid color-mix(in srgb,var(--shift-color) 12%,transparent); border-radius: 9px; background: var(--shift-bg); }
+.stat-value { font: 500 28px 'Palatino Linotype',Georgia,serif; font-variant-numeric: lining-nums tabular-nums; line-height: 1.25; margin-block: 6px; }
+.stat-unit { margin-left: 3px; color: var(--text-muted); font: 11px 'Microsoft YaHei UI','PingFang SC',sans-serif; }
+.stat-card .stat-label { display: flex; align-items: center; gap: 5px; color: var(--text); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.stat-card .legend-dot { width: 5px; height: 5px; }
+.stat-trend { color: var(--text-muted); font-size: 10px; line-height: 1.7; }
+.work-hours-card { margin-top: 19px; border-top: 1px solid var(--border); padding-top: 17px; }
+.work-hours-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.work-hours-label { color: var(--text-muted); font-size: 12px; }
+.month-days { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.work-hours-value { margin-top: 5px; }
+#workHours { font: 500 34px 'Palatino Linotype',Georgia,serif; font-variant-numeric: lining-nums tabular-nums; line-height: 1.25; }
 .work-hours-unit { color: var(--text-muted); margin-left: 5px; font-size: 12px; }
 .hours-note { color: var(--text-muted); font-size: 10px; margin-top: 2px; }
-.ring-chart-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.ring-chart { height: 54px; width: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.ring-chart-inner { width: 41px; height: 41px; border-radius: 50%; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font: 550 13px ui-monospace, Consolas, monospace; }
-.ring-caption { font-size: 10px; color: var(--text-muted); }
-.ring-legend { display: none; }
+.month-balance { margin-top: 16px; }
+.balance-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+.balance-heading > span:last-child { color: var(--text-muted); font-size: 10px; }
+.balance-bar { display: flex; gap: 3px; height: 8px; overflow: hidden; border-radius: 4px; }
+.balance-segment { flex-basis: 0; min-width: 0; }
+.balance-work { background: var(--day-color); }
+.balance-rest { background: var(--rest-color); }
+.balance-rest.balance-segment { background: repeating-linear-gradient(120deg,transparent 0 4px,#ffffff30 4px 5px),var(--rest-color); }
+.balance-legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin-top: 9px; }
+.balance-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.balance-dot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+.balance-item strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.balance-percent { color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 
 /* The next week and date inspector share the same space. */
 .upcoming-panel, .detail-panel { padding: 20px; }
@@ -493,14 +503,11 @@ body, .panel, .today-card, .day-cell { transition: background-color .24s ease, c
   .stats-container { margin-top: 20px; }
   .stat-card { padding-inline: 17px; }
   .stat-value { font-size: 32px; }
-  .stat-icon { float: right; margin-right: 8px; font-size: 17px; }
   .stat-label { font-size: 13px; }
   .stat-trend { font-size: 11px; }
   .work-hours-card { padding-top: 18px; margin-top: 20px; }
   .work-hours-label { font-size: 13px; }
   .hours-note { font-size: 11px; }
-  .ring-chart { height: 58px; width: 58px; }
-  .ring-chart-inner { width: 45px; height: 45px; }
   .upcoming-panel .eyebrow { font-size: 11px; }
   .upcoming-day { min-height: 43px; padding-inline: 9px; }
   .upcoming-date strong { font-size: 14px; }

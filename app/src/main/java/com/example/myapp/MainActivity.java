@@ -22,6 +22,7 @@ import android.webkit.WebViewClient;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.webkit.WebViewAssetLoader;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,17 +31,24 @@ import org.json.JSONObject;
  * 承载网页内核（app/src/main/assets/index.html）的原生外壳。
  *
  * 页面本身包含完整的品牌区、日历、统计与设置界面，原生层只负责：
- * 1. 以 file:///android_asset/ 加载本地页面（无需网络权限）；
+ * 1. 以 https 虚拟域（WebViewAssetLoader）加载本地页面，无需网络权限；
  * 2. 把排班设置同步给桌面小部件（SharedPreferences "WidgetSettings"）；
  * 3. 处理返回键（先关弹窗，再考虑页面后退）与外链跳转。
+ *
+ * 之所以不再用 file:///android_asset/：网页内核自 v2 起以 ES module 启动，
+ * file:// 的 origin 为 null，module 请求会按跨源处理而被拦截，页面无法初始化。
+ * WebViewAssetLoader 把 assets 映射到同源的 https 虚拟地址，module 即可正常加载。
  */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final String ASSET_BASE = "file:///android_asset/";
+    /** assets 的虚拟域名；必须是 https 且属于 WebViewAssetLoader 默认白名单。 */
+    private static final String ASSET_DOMAIN = "appassets.androidplatform.net";
+    private static final String ASSET_BASE = "https://" + ASSET_DOMAIN + "/";
     private static final String HOME_URL = ASSET_BASE + "index.html";
 
     private WebView webView;
+    private WebViewAssetLoader assetLoader;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -53,7 +61,8 @@ public class MainActivity extends AppCompatActivity {
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);   // 页面使用 localStorage 保存配置
-        webSettings.setAllowFileAccess(true);     // API 30+ 默认关闭，读取 assets 必需
+        // 资源改由 WebViewAssetLoader 经 https 虚拟域提供，不再需要开放 file:// 访问。
+        webSettings.setAllowFileAccess(false);
         webSettings.setAllowContentAccess(false);
         webSettings.setAllowFileAccessFromFileURLs(false);
         webSettings.setAllowUniversalAccessFromFileURLs(false);
@@ -62,8 +71,13 @@ public class MainActivity extends AppCompatActivity {
         // 页面用 meta viewport 自适应，禁止系统再叠加缩放。
         webSettings.setTextZoom(100);
 
+        assetLoader = new WebViewAssetLoader.Builder()
+                .setDomain(ASSET_DOMAIN)
+                .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         webView.addJavascriptInterface(new SettingsInterface(this), "Android");
-        webView.setWebViewClient(new LocalAssetClient());
+        webView.setWebViewClient(new LocalAssetClient(assetLoader));
         // Context#getColor 需要 API 23，项目 minSdk 为 21，改用兼容方法。
         webView.setBackgroundColor(ContextCompat.getColor(this, R.color.bg));
 
@@ -73,29 +87,42 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 返回键优先级：先关闭页面内弹窗，再尝试网页历史，最后退出应用。
-     * 弹窗状态由页面自身维护，这里通过可见的 .modal 元素判断，避免修改网页资源。
+     * 弹窗状态由页面自身维护，这里通过可见的 .modal / .picker-overlay 元素判断，
+     * 关闭动作统一交给 ui.js 的 dismissDialog（页面把入口挂在 QingZhengAppBridge 上）。
      */
     private void registerBackHandling() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                webView.evaluateJavascript(
-                        "(function(){var m=document.querySelector('.modal:not([hidden])');"
-                                + "return m ? (m.id === 'settingsModal' ? 'settings' : 'picker') : '';})()",
-                        value -> {
-                            String dialog = value == null ? "" : value.replace("\"", "").trim();
-                            if ("settings".equals(dialog)) {
-                                webView.evaluateJavascript("closeSettings()", null);
-                            } else if ("picker".equals(dialog)) {
-                                webView.evaluateJavascript("closePicker()", null);
-                            } else if (webView.canGoBack()) {
-                                webView.goBack();
-                            } else {
-                                finish();
-                            }
-                        });
+                dismissWebDialogOrExit();
             }
         });
+    }
+
+    private void dismissWebDialogOrExit() {
+        if (webView == null) {
+            finish();
+            return;
+        }
+        webView.evaluateJavascript(
+                "(function(){try{"
+                        + "var bridge=window.QingZhengAppBridge;"
+                        + "if(bridge&&typeof bridge.dismissTopDialog==='function'&&bridge.dismissTopDialog())return 'dismissed';"
+                        + "}catch(e){}"
+                        + "return 'none';})()",
+                value -> {
+                    String result = value == null ? "" : value.replace("\"", "").trim();
+                    if ("dismissed".equals(result)) return;
+                    if (webView == null) {
+                        finish();
+                        return;
+                    }
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                    } else {
+                        finish();
+                    }
+                });
     }
 
     @Override
@@ -137,15 +164,29 @@ public class MainActivity extends AppCompatActivity {
      * 只允许加载本地 assets；外部链接交给系统浏览器，避免在 WebView 内打开网页。
      */
     private class LocalAssetClient extends WebViewClient {
+
+        private final WebViewAssetLoader loader;
+
+        LocalAssetClient(WebViewAssetLoader loader) {
+            this.loader = loader;
+        }
+
+        @Override
+        public android.webkit.WebResourceResponse shouldInterceptRequest(
+                WebView view, WebResourceRequest request) {
+            return loader.shouldInterceptRequest(request.getUrl());
+        }
+
         @Override
         public void onPageFinished(WebView view, String url) {
             if (!HOME_URL.equals(url)) return;
-            // Reconcile existing WebView storage on upgrade, not only after the next manual save.
-            view.evaluateJavascript("(function(){try {"
-                    + "if(typeof CYCLE!=='undefined' && typeof SHIFT_DEFS!=='undefined'"
-                    + " && typeof formatDateISO==='function')"
-                    + "Android.saveSettings(JSON.stringify(CYCLE),formatDateISO(ANCHOR_DATE),"
-                    + "JSON.stringify(SHIFT_DEFS));}catch(e){}})()", null);
+            // 页面改为模块化后不再暴露全局 CYCLE/SHIFT_DEFS，
+            // 改为通过注入的读取入口取当前配置，首次进入时对齐小部件数据。
+            view.evaluateJavascript(
+                    "(function(){try{"
+                            + "if(window.QingZhengAppBridge&&typeof window.QingZhengAppBridge.syncNow==='function'){"
+                            + "window.QingZhengAppBridge.syncNow();return 'ok';}"
+                            + "return 'pending';}catch(e){return 'error';}})()", null);
         }
 
         /** API 24+ 的入口。 */
@@ -165,13 +206,14 @@ public class MainActivity extends AppCompatActivity {
             String scheme = uri.getScheme() == null ? "" : uri.getScheme();
             String url = uri.toString();
 
+            // 虚拟域内的页面跳转留在 WebView 内；<a href="./"> 之类指向目录的忽略。
+            if (ASSET_DOMAIN.equals(uri.getHost())) {
+                return !url.startsWith(HOME_URL);
+            }
             if ("file".equals(scheme)) {
-                // 页面内的 <a href="./"> 会指向资产目录本身，不构成有效页面，直接忽略。
-                boolean isAssetPage = url.startsWith(HOME_URL);
-                if (!isAssetPage) {
-                    Log.d(TAG, "Ignoring in-app navigation to " + url);
-                }
-                return !isAssetPage;
+                // 已不再使用 file:// 加载，任何文件跳转都不应发生在应用内。
+                Log.d(TAG, "Ignoring in-app navigation to " + url);
+                return true;
             }
             if ("http".equals(scheme) || "https".equals(scheme)) {
                 try {

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  弹性间隔用的 id。
+
+  LinearLayout 里的「弹性间隔」是一个 height=0dp + layout_weight=1 的空容器。
+  LinearLayout 只把**剩余高度**按权重分给它们：空间不足时自动拿到 0 高度，
+  内容永远不会被挤出卡片；空间富余时各段间隙完全相等，节奏整齐。
+
+  注意间隔的**数量**要与可见块数量匹配：夹在两个已隐藏块之间的间隔会合并成一段，
+  反而制造大洞。因此布局里只把间隔放在稳定的「块对」之间（见各布局的注释）。
+
+  必须是 RemoteViews 支持的控件，所以用 LinearLayout 而不是 Space / View。
+-->
+<resources>
+    <item name="spring_1" type="id" />
+    <item name="spring_2" type="id" />
+    <item name="spring_3" type="id" />
+    <item name="spring_4" type="id" />
+    <item name="spring_5" type="id" />
+    <item name="spring_6" type="id" />
+    <item name="spring_7" type="id" />
+    <item name="spring_8" type="id" />
+    <item name="spring_9" type="id" />
+    <item name="spring_10" type="id" />
+    <item name="spring_11" type="id" />
+    <item name="spring_12" type="id" />
+</resources>

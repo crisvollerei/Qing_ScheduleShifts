@@ -24,12 +24,17 @@
 
 | 组成 | 位置 | 说明 |
 |------|------|------|
-| **网页内核** | `app/src/main/assets/` | 轮班日历全部功能：自定义周期、班次时间、跨日班、方案切换、月度统计、年度总览、农历/节气/节日、银昼与蓝夜双主题 |
-| **Android 外壳** | `app/src/main/java/…/MainActivity.java` | WebView 加载本地页面，负责返回键、外链与设置桥 |
+| **网页内核** | `app/src/main/assets/` | 轮班日历全部功能：自定义周期、班次时间、跨日班、方案切换、月度统计、年度总览、农历/节气/节日、备份恢复、头像与标题、银昼与蓝夜双主题 |
+| **Android 外壳** | `app/src/main/java/…/MainActivity.java` | 经 `WebViewAssetLoader` 以同源 https 虚拟域加载页面，负责返回键、外链与设置桥 |
+| **原生桥** | `app/src/main/assets/assets/android-bridge.js` | 本项目自有：从小部件侧回读排班、供返回键关闭页面弹窗 |
 | **桌面小部件** | `app/src/main/java/…/MyWidgetProvider.java` | 读取网页保存的排班，显示今日班次、周期进度与上下班倒计时 |
 | **设置桥** | `MainActivity.SettingsInterface` | 网页保存时经 `Android.saveSettings()` 写入 SharedPreferences，供小部件读取 |
 
 网页运行时不依赖任何外部字体、图标或 CDN，也不需要网络权限；素材全部在 `assets/` 内本地存放。
+
+> 网页内核自 v2 起以 **ES module** 启动。`file://` 的 origin 为 `null`，module 请求会被当作
+> 跨源拦截，因此 WebView 不能再用 `file:///android_asset/` 直接加载，改用
+> `WebViewAssetLoader` 映射到 `https://appassets.androidplatform.net/`（详见 [设计说明](docs/DESIGN_NOTES.md)）。
 
 ---
 
@@ -38,14 +43,11 @@
 网页内核可以脱离 Android 独立运行：
 
 ```sh
-# 方式一：直接打开
-app/src/main/assets/index.html
-
-# 方式二：本机预览服务（推荐，localStorage 行为与线上一致）
 npm start                 # 默认 http://127.0.0.1:4175
 ```
 
-> 两种方式的浏览器存储空间是分开的，已有数据不会自动互相出现。
+> 页面使用 ES module，**必须经 HTTP(S) 加载**，不能直接双击 `index.html`。
+> 本机预览服务已经满足这一要求。
 
 功能要点：
 
@@ -61,12 +63,16 @@ npm start                 # 默认 http://127.0.0.1:4175
 - 顶部月亮 / 太阳按钮手动切换主题，时钟按钮启用昼夜自动模式（07:00–19:00 银昼，其余蓝夜）。
 - 月历旁的 Q 版小陪伴：银昼是大肥龙，蓝夜是大肥鱼。点击人物在轻松短句与当前排班提示
   （距离下班 / 距离下次上班 / 明日班次 / 下个休息日）之间切换，气泡可收起。
+- 月历支持左右滑动切月；「备份与恢复」可导出、导入排班数据；「头像与标题」可自定义外观。
 - 键盘：← / → 切月，T 回到今天，Esc 关闭弹窗或详情。
 - 农历与节气数据（2025–2030）离线存放于 `assets/calendar-data.js`，来源为香港天文台公历与农历对照表。
   已覆盖年份之外，农历回退到浏览器内置的中国历法。
 
 配置与方案只保存在当前浏览器（或 WebView 的 localStorage），不上传服务器。
 网页兼容旧版存储键 `qingzheng-anchor`、`qingzheng-cycle`、`qingzheng-shift-defs`，保存后使用单条 `qingzheng-config`。
+
+> 网页内核自 v2 起以 **ES module** 启动，不能直接双击 `index.html` 打开，
+> 需经 HTTP(S) 加载。本仓库的 `npm start` 已提供符合该要求的本地预览服务。
 
 ---
 
@@ -77,17 +83,25 @@ ScheduleShifts/
 ├── app/src/main/
 │   ├── assets/                    # ★ 网页内核（同时是 Android 的内嵌页面）
 │   │   ├── index.html             # 页面结构
-│   │   ├── avatar.png             # 品牌头像
 │   │   └── assets/
-│   │       ├── styles.css         # 明暗主题与响应式样式
-│   │       ├── themes.css         # 银昼 / 蓝夜纹样与饰扣
-│   │       ├── festivals.css      # 节日配色与卡片插画
-│   │       ├── companion.css      # Q 版陪伴气泡与点击反馈
-│   │       ├── app.js             # 交互、草稿、存储、弹窗与视图
+│   │       ├── main.js            # ES module 启动入口（额外挂载原生桥）
+│   │       ├── app.js             # 主题、实时更新与模块协调
+│   │       ├── schedule.js        # 排班模型与周期计算
 │   │       ├── schedule-core.js   # 配置校验与日期、班次计算
+│   │       ├── settings.js        # 排班设置与方案管理
+│   │       ├── views.js           # 月历、统计与详情渲染
+│   │       ├── ui.js              # 弹窗、焦点与动效工具
+│   │       ├── companion.js       # Q 版陪伴
+│   │       ├── festivals.js       # 节日与节气
+│   │       ├── data-tools.js      # 备份与恢复
+│   │       ├── backup-format.js   # 备份编码与校验
+│   │       ├── personalization.js # 头像与标题
+│   │       ├── storage.js         # 本地存储读写
+│   │       ├── config.js          # 默认班次与配色预设
 │   │       ├── calendar-data.js   # 农历月首与节气数据（2025–2030）
-│   │       ├── character-day.webp / character-night.webp
-│   │       ├── chibi-day.png / chibi-night.png  # Q 版人物原图
+│   │       ├── android-bridge.js  # ★ 本项目自有：原生桥（反向读取 / 关弹窗）
+│   │       ├── *.css              # 主题、节日、陪伴、动效与输入页样式
+│   │       ├── *.webp / *.png     # 人物与头像素材
 │   │       └── *.svg              # 本地矢量装饰
 │   ├── java/com/example/myapp/
 │   │   ├── MainActivity.java      # WebView 宿主与设置桥
@@ -97,7 +111,8 @@ ScheduleShifts/
 │   └── AndroidManifest.xml
 ├── tests/                         # 网页内核与小部件同步的回归测试
 ├── scripts/serve.mjs              # 无依赖本机预览服务
-├── docs/DESIGN_NOTES.md           # 银昼 / 蓝夜视觉设计说明
+├── docs/DESIGN_NOTES.md           # 银昼 / 蓝夜视觉与交互设计说明
+├── docs/BACKUP_FORMAT.md          # 备份编码与数据版本约定
 ├── package.json                   # 仅用于开发测试，网页运行不需要
 └── README.md
 ```
@@ -110,8 +125,8 @@ ScheduleShifts/
 ## ✅ 测试
 
 网页内核带有回归测试，覆盖配置校验与恢复、草稿取消、输入校验、跨日与跨午夜、
-方案切换与命名表单、日期边界、节日与农历、主题切换、Q 版陪伴的文案与折叠、
-输入页的绘制隔离，以及网页与原生侧的数据同步。
+方案切换与命名表单、滑动切月、日期边界、节日与农历、主题切换、Q 版陪伴的文案与折叠、
+备份导入导出、个性化外观、输入页的绘制隔离，以及网页与原生侧的数据同步。
 
 ```sh
 npm ci        # 仅首次，安装 jsdom
@@ -181,8 +196,8 @@ schedule { manifestPlaceholders = [appLabel: "排班"] }
 `app/build.gradle` 顶部集中维护：
 
 ```groovy
-def appVersionCode = 13
-def appVersionName = "0.2.1"
+def appVersionCode = 14
+def appVersionName = "0.2.2"
 ```
 
 > ⚠️ `versionCode` 必须**严格递增**，否则覆盖安装会被系统拒绝
@@ -269,9 +284,11 @@ Android 12+ 按桌面提供的 `OPTION_APPWIDGET_SIZES` 构造响应式 RemoteVi
 
 - 时钟由桌面中的 `TextClock` 逐秒更新；Android 7+ 的倒计时由 `Chronometer` 倒计时模式逐秒更新，即使应用进程退出也能继续走动。
 - Android 5–6 没有原生倒计时模式，采用亮屏时非唤醒的逐秒闹钟兼容路径，熄屏停止；推荐 Android 7+。
-- 排班只在上班、下班、跨日班结束、午夜重建，不用后台服务持续每秒推送。另有非唤醒的半小时恢复闹钟。
+- 不用后台服务持续每秒推送。上班、下班、跨日班结束、午夜以及倒计时不足 10 小时 / 1 小时的格式边界会重新绑定；倒计时通过有效的 `%s` 格式补齐为 `HH:mm:ss`，超过 99 小时保留完整小时数。
+- 每次重新绑定都会先停止、再启动 `Chronometer`，修复桌面仍标记为运行、但逐秒回调丢失的情况；点击刷新立即校准，不等待按钮动画结束。
+- Android 7+ 另有不依赖应用进程常驻的分钟级恢复尝试，使用非唤醒闹钟，熄屏时不重绘；保留非唤醒的半小时兜底。分钟级恢复不是系统保证的时限，休眠、省电及权限限制均可能延后。
 - Android 12+ 使用“闹钟和提醒”特殊访问权限，让状态边界精确触发；从小组件打开应用时会说明并提供授权入口。
-- 未授权时退回系统允许的非精确闹钟，时钟和倒计时仍逐秒走动，但归零后的班次 / 文案切换可能延迟；打开应用、解锁（进程仍在时）或点击刷新可立即校准。
+- 未授权时退回系统允许的非精确闹钟，正常的原生计时不受影响，但班次切换、格式补零切换及冻结后的恢复可能延迟；打开应用、解锁（进程仍在时）或点击刷新可立即校准。
 - 监听重启、应用升级、系统校时、时区与日期变化；进程存活时也会在亮屏、解锁、系统主题变化和分钟广播重新校准。
 - 小米等厂商的强制冻结 / 强制停止仍可能阻止广播和闹钟，需要允许应用自启动及正常后台运行；应用无法绕过系统限制。
 

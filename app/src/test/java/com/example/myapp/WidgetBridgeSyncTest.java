@@ -16,14 +16,28 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
 public class WidgetBridgeSyncTest {
+
+    /** 页面改为 ES module 后经 https 虚拟域加载，同步入口是小部件桥的 syncNow。 */
     @Test public void loadingExistingWebProfileAlsoPushesItsActiveScheduleToWidgets() {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             WebView view = controller.get().findViewById(R.id.webView);
-            view.getWebViewClient().onPageFinished(view, "file:///android_asset/index.html");
+            // 只对首页触发，URL 必须与 MainActivity 使用的虚拟域一致。
+            view.getWebViewClient().onPageFinished(
+                    view, "https://appassets.androidplatform.net/index.html");
             String script = Shadows.shadowOf(view).getLastEvaluatedJavascript();
-            assertTrue(script.contains("Android.saveSettings(JSON.stringify(CYCLE)"));
-            assertTrue(script.contains("formatDateISO(ANCHOR_DATE)"));
-            assertTrue(script.contains("JSON.stringify(SHIFT_DEFS)"));
+            assertNotNull("首页加载完成应注入同步脚本", script);
+            assertTrue(script.contains("QingZhengAppBridge"));
+            assertTrue(script.contains("syncNow"));
+        }
+    }
+
+    /** 非首页的加载不应触发同步脚本。 */
+    @Test public void otherPagesDoNotTriggerScheduleSync() {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            WebView view = controller.get().findViewById(R.id.webView);
+            view.getWebViewClient().onPageFinished(
+                    view, "https://appassets.androidplatform.net/other.html");
+            assertNull(Shadows.shadowOf(view).getLastEvaluatedJavascript());
         }
     }
 

@@ -1,7 +1,7 @@
 // Calendar dates: Hong Kong Observatory Gregorian-Lunar conversion tables, 2025–2030.
 // Source: https://www.hko.gov.hk/sc/gts/time/conversion.htm
 // Civil dates use UTC+8. Never substitute another year's table.
-(function(root,data){if(typeof module==='object'&&module.exports)module.exports=data;else root.CalendarData=data;})(typeof globalThis!=='undefined'?globalThis:this,{
+export default {
   "terms": [
     "小寒",
     "大寒",
@@ -28,104 +28,6 @@
     "大雪",
     "冬至"
   ],
-  "info": {
-    "小寒": {
-      "icon": "❄️",
-      "month": 1
-    },
-    "大寒": {
-      "icon": "🧊",
-      "month": 1
-    },
-    "立春": {
-      "icon": "🌱",
-      "month": 2
-    },
-    "雨水": {
-      "icon": "🌧️",
-      "month": 2
-    },
-    "惊蛰": {
-      "icon": "⚡",
-      "month": 3
-    },
-    "春分": {
-      "icon": "🌸",
-      "month": 3
-    },
-    "清明": {
-      "icon": "🌿",
-      "month": 4
-    },
-    "谷雨": {
-      "icon": "🌾",
-      "month": 4
-    },
-    "立夏": {
-      "icon": "☀️",
-      "month": 5
-    },
-    "小满": {
-      "icon": "🌾",
-      "month": 5
-    },
-    "芒种": {
-      "icon": "🌾",
-      "month": 6
-    },
-    "夏至": {
-      "icon": "🌞",
-      "month": 6
-    },
-    "小暑": {
-      "icon": "🌡️",
-      "month": 7
-    },
-    "大暑": {
-      "icon": "🔥",
-      "month": 7
-    },
-    "立秋": {
-      "icon": "🍂",
-      "month": 8
-    },
-    "处暑": {
-      "icon": "🌅",
-      "month": 8
-    },
-    "白露": {
-      "icon": "💧",
-      "month": 9
-    },
-    "秋分": {
-      "icon": "🍁",
-      "month": 9
-    },
-    "寒露": {
-      "icon": "🌙",
-      "month": 10
-    },
-    "霜降": {
-      "icon": "🍂",
-      "month": 10
-    },
-    "立冬": {
-      "icon": "❄️",
-      "month": 11
-    },
-    "小雪": {
-      "icon": "🌨️",
-      "month": 11
-    },
-    "大雪": {
-      "icon": "❄️",
-      "month": 12
-    },
-    "冬至": {
-      "icon": "⛄",
-      "month": 12
-    }
-  },
   "dates": {
     "2025": [
       "01-05",
@@ -738,4 +640,4 @@
   ],
   "lunarStart": 20089,
   "lunarEnd": 22279
-});
+};

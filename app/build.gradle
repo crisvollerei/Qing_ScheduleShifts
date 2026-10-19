@@ -5,8 +5,8 @@ plugins {
 // 版本号集中在此处维护。
 // versionCode 必须严格递增，否则覆盖安装会被系统拒绝（INSTALL_FAILED_VERSION_DOWNGRADE）；
 // versionName 是展示给用户的版本，可与 code 不必一一对应。
-def appVersionCode = 13
-def appVersionName = "0.2.1"
+def appVersionCode = 14
+def appVersionName = "0.2.2"
 
 // 签名凭据从本机 local.properties 或环境变量读取，避免密钥口令进入版本库。
 def localProperties = new Properties()
@@ -130,6 +130,9 @@ tasks.register("unitTestClasses") {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
+    // 网页内核自 v2 起使用 ES module；WebViewAssetLoader 以 https 虚拟域提供 assets，
+    // 使 module 脚本具备同源环境（file:// 下会被 CORS 拦截）。
+    implementation 'androidx.webkit:webkit:1.9.0'
     // 两个布局均为 LinearLayout + WebView，未使用 ConstraintLayout，故不再引入。
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'

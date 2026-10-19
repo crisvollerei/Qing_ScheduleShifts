@@ -1,176 +1,265 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Header, hero, schedule and timing are independent reading groups. -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_mini">
     <ImageView
-        android:layout_width="130dp"
-        android:layout_height="130dp"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
         android:layout_gravity="top|end"
-        android:layout_marginTop="-45dp"
-        android:layout_marginEnd="-45dp"
+        android:layout_marginTop="-65dp"
+        android:layout_marginEnd="-65dp"
         android:src="@drawable/widget_orbit"
         android:alpha="0.18"
         android:importantForAccessibility="no" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:baselineAligned="false">
+        android:orientation="vertical"
+        android:id="@+id/widget_content"
+        android:padding="@dimen/widget_inset_mini">
+        <TextView
+            android:id="@+id/today_date"
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/widget_header_reserve_mini"
+            android:minHeight="@dimen/widget_refresh_size"
+            android:gravity="center_vertical" />
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:id="@+id/widget_columns"
             android:layout_weight="1"
-            android:orientation="vertical">
-            <TextView
-                android:id="@+id/shift_title"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
-            <TextView
-                android:id="@+id/today_date"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="10sp" />
+            android:layout_marginTop="0dp">
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:gravity="center_vertical">
+                android:layout_weight="1">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:orientation="vertical"
+                    android:id="@+id/spring_1"
+                    android:layout_weight="1" />
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:baselineAligned="false"
                     android:gravity="center_vertical"
-                    android:baselineAligned="false">
-                    <TextView
-                        android:id="@+id/shift_emoji"
-                        style="@style/WidgetText"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:gravity="center"
-                        android:ellipsize="none"
-                        android:textSize="20sp"
-                        android:importantForAccessibility="no" />
-                    <TextView
-                        android:id="@+id/shift_name"
-                        style="@style/WidgetText"
-                        android:layout_width="0dp"
+                    android:id="@+id/hero_section">
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="4dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="22sp" />
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/shift_title"
+                            style="@style/WidgetLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:baselineAligned="false"
+                            android:gravity="center_vertical">
+                            <TextView
+                                android:id="@+id/shift_emoji"
+                                style="@style/WidgetText"
+                                android:layout_width="@dimen/widget_emoji_box_mini"
+                                android:layout_height="@dimen/widget_emoji_box_mini"
+                                android:gravity="center"
+                                android:ellipsize="none"
+                                android:textSize="@dimen/widget_text_emoji_1"
+                                android:importantForAccessibility="no" />
+                            <TextView
+                                android:id="@+id/shift_name"
+                                style="@style/WidgetText"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="@dimen/widget_rhythm_mini_2"
+                                android:fontFamily="sans-serif-medium"
+                                android:textSize="@dimen/widget_text_name_2" />
+                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/shift_status"
+                            style="@style/WidgetLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/widget_rhythm_mini_1"
+                            android:textColor="@color/widget_accent" />
+                        <TextView
+                            android:id="@+id/shift_time"
+                            style="@style/WidgetLabel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/widget_rhythm_mini_1" />
+                    </LinearLayout>
                 </LinearLayout>
-                <TextView
-                    android:id="@+id/shift_status"
-                    style="@style/WidgetLabel"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:orientation="vertical"
+                    android:id="@+id/spring_2"
+                    android:layout_weight="1" />
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/shift_time"
-                    style="@style/WidgetText"
+                    android:orientation="vertical"
+                    android:id="@+id/schedule_section">
+                    <TextView
+                        android:id="@+id/cycle_info"
+                        style="@style/WidgetLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <ProgressBar
+                        android:id="@+id/progress_bar"
+                        style="@android:style/Widget.ProgressBar.Horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/widget_progress_mini"
+                        android:layout_marginTop="@dimen/widget_rhythm_mini_1"
+                        android:minHeight="0dp"
+                        android:maxHeight="@dimen/widget_progress_mini"
+                        android:background="@drawable/widget_slot"
+                        android:progressDrawable="@drawable/progress_bar"
+                        android:indeterminate="false" />
+                    <TextView
+                        android:id="@+id/next_shifts"
+                        style="@style/WidgetLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/widget_rhythm_mini_2" />
+                </LinearLayout>
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="10sp" />
+                    android:layout_height="0dp"
+                    android:orientation="vertical"
+                    android:id="@+id/spring_3"
+                    android:layout_weight="1" />
             </LinearLayout>
-            <TextView
-                android:id="@+id/cycle_info"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:layout_weight="1.35"
+                android:layout_marginStart="@dimen/widget_companion_gap_mini">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:orientation="vertical"
+                    android:id="@+id/spring_4"
+                    android:layout_weight="1" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:id="@+id/timing_panel">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:id="@+id/clock_label"
+                            style="@style/WidgetLabel"
+                            android:layout_width="@dimen/widget_data_label_mini_wide"
+                            android:layout_height="wrap_content"
+                            android:text="@string/widget_now" />
+                        <!--
+                          两行数值都左对齐，共用同一列起点。
+                          Provider 将倒计时补齐为 HH:mm:ss，不再用内边距模拟缺失数字。
+                          与实时时钟使用同字号，保证两行冒号对齐。
+                        -->
+                        <TextClock
+                            android:id="@+id/live_clock"
+                            style="@style/WidgetTimer"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="@dimen/widget_rhythm_mini_2"
+                            android:format12Hour="HH:mm:ss"
+                            android:format24Hour="HH:mm:ss"
+                            android:textColor="@color/widget_ink" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="@dimen/widget_rhythm_mini_2">
+                        <TextView
+                            android:id="@+id/countdown_label"
+                            style="@style/WidgetLabel"
+                            android:layout_width="@dimen/widget_data_label_mini_wide"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/widget_accent" />
+                        <Chronometer
+                            android:id="@+id/countdown_chronometer"
+                            style="@style/WidgetTimer"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="@dimen/widget_rhythm_mini_2"
+                            android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/countdown_text"
+                            style="@style/WidgetTimer"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="@dimen/widget_rhythm_mini_2" />
+                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/countdown_detail"
+                        style="@style/WidgetLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/widget_rhythm_mini_1" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:orientation="vertical"
+                    android:id="@+id/spring_5"
+                    android:layout_weight="1" />
+            </LinearLayout>
+            <ImageView
+                android:id="@+id/companion_portrait"
+                android:layout_width="@dimen/widget_portrait_mini"
                 android:layout_height="wrap_content"
-                android:textSize="9sp" />
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                style="@android:style/Widget.ProgressBar.Horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="2dp"
-                android:layout_marginTop="3dp"
-                android:minHeight="0dp"
-                android:maxHeight="2dp"
-                android:progressDrawable="@drawable/progress_bar"
-                android:indeterminate="false" />
-            <TextView
-                android:id="@+id/next_shifts"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:textSize="9sp"
-                android:visibility="gone" />
+                android:adjustViewBounds="true"
+                android:maxHeight="@dimen/widget_portrait_wide"
+                android:layout_marginStart="@dimen/widget_companion_gap_mini"
+                android:src="@drawable/widget_companion"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                android:importantForAccessibility="no"
+                android:focusable="false"
+                android:layout_gravity="center_vertical" />
         </LinearLayout>
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginStart="12dp"
-            android:orientation="vertical"
-            android:gravity="center_vertical">
-            <TextClock
-                android:id="@+id/live_clock"
-                style="@style/WidgetTimer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
-                android:format12Hour="HH:mm:ss"
-                android:format24Hour="HH:mm:ss"
-                android:textColor="@color/widget_ink"
-                android:textSize="24sp" />
-            <TextView
-                android:id="@+id/countdown_label"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_accent"
-                android:textSize="10sp" />
-            <Chronometer
-                android:id="@+id/countdown_chronometer"
-                style="@style/WidgetTimer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="22sp"
-                android:visibility="gone" />
-            <TextView
-                android:id="@+id/countdown_text"
-                style="@style/WidgetTimer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="22sp" />
-            <TextView
-                android:id="@+id/countdown_detail"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textSize="9sp"
-                android:visibility="gone" />
-        </LinearLayout>
-        <ImageView
-            android:id="@+id/companion_portrait"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.65"
-            android:layout_marginStart="12dp"
-            android:visibility="gone"
-            android:src="@drawable/widget_companion"
-            android:scaleType="fitCenter"
-            android:importantForAccessibility="no"
-            android:focusable="false" />
     </LinearLayout>
     <ImageView
         android:id="@+id/refresh_button"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
+        android:layout_width="@dimen/widget_refresh_size"
+        android:layout_height="@dimen/widget_refresh_size"
         android:layout_gravity="top|end"
-        android:layout_marginTop="5dp"
-        android:layout_marginEnd="5dp"
-        android:padding="2dp"
+        android:layout_marginTop="@dimen/widget_inset_mini"
+        android:layout_marginEnd="@dimen/widget_inset_mini"
+        android:padding="@dimen/widget_refresh_padding_mini"
+        android:background="@drawable/widget_refresh_button"
         android:src="@drawable/widget_refresh"
+        android:scaleType="fitCenter"
         android:contentDescription="@string/widget_refresh" />
 </FrameLayout>

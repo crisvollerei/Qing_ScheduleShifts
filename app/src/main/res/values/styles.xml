@@ -34,4 +34,17 @@
         <item name="android:textSize">28sp</item>
         <item name="android:ellipsize">none</item>
     </style>
+    <!-- 未来七天徽标：固定圆角底块，等分列宽。 -->
+    <style name="WidgetBadge" parent="WidgetText">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginEnd">@dimen/widget_week_badge_gap</item>
+        <item name="android:background">@drawable/widget_badge</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:textSize">@dimen/widget_text_label_1</item>
+        <item name="android:textColor">@color/widget_ink</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
 </resources>

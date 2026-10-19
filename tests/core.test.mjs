@@ -1,7 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const Core = require('../app/src/main/assets/assets/schedule-core.js');
-Core.setLunarCalendar(require('../app/src/main/assets/assets/calendar-data.js'));
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import Core from '../app/src/main/assets/assets/schedule-core.js';
+import CalendarData from '../app/src/main/assets/assets/calendar-data.js';
+Core.setLunarCalendar(CalendarData);
 
 test('dates reject impossible values rather than rolling into the next month', () => {
   for (const date of ['2026-02-29','2026-04-31','2026-13-01','oops','0099-01-01']) assert.equal(Core.parseDate(date),null,date);

@@ -1,0 +1,39 @@
+/* Ambient details only run in visible scenes, never behind an input page. */
+@keyframes mote-orbit {
+  from { transform: rotate(0turn) translateX(var(--orbit-radius)) rotate(0turn); }
+  to { transform: rotate(1turn) translateX(var(--orbit-radius)) rotate(-1turn); }
+}
+@keyframes starlight {
+  0%, 100% { opacity: .4; }
+  45% { opacity: .9; }
+}
+@keyframes track-travel {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+@keyframes facet-spin {
+  from { transform: rotate(0turn); }
+  to { transform: rotate(1turn); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .orbit-marker { animation: track-travel var(--orbit-duration) linear infinite var(--orbit-direction,normal) paused; animation-delay: calc(var(--orbit-phase) - var(--orbit-duration) * var(--marker-gap,0)); }
+  /* Rotate the centered glyph, not the traveler that keeps it on the track. */
+  .marker-diamond .orbit-glyph { animation: facet-spin var(--spin-duration,32s) linear var(--spin-phase,-7s) infinite var(--spin-direction,normal) paused; }
+  .folio-mote { animation: mote-orbit 38s linear infinite paused; }
+  .folio-mote { animation-duration: 44s; animation-delay: -11s; }
+  .folio-mote:last-child { animation-duration: 61s; animation-delay: -37s; animation-direction: reverse; }
+  .art-halo { animation: starlight 7s ease-in-out infinite paused; }
+  .ambient-visible .orbit-marker, .ambient-visible .folio-mote,
+  .ambient-visible .art-halo, .ambient-visible .marker-diamond .orbit-glyph { animation-play-state: running; }
+  .today-card.ambient-visible .progress-charm { animation: starlight 6s ease-in-out infinite; }
+}
+.page-hidden *, .page-hidden *::before, .page-hidden *::after,
+.main-container[inert] *, .main-container[inert] *::before, .main-container[inert] *::after {
+  animation-play-state: paused !important;
+}
+@supports not (offset-path: path('M0 0L1 1')) {
+  .orbit-marker { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

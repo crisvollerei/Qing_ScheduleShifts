@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Header, hero, schedule and timing are independent reading groups. -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_container"
@@ -12,190 +13,213 @@
         android:layout_marginTop="-65dp"
         android:layout_marginEnd="-65dp"
         android:src="@drawable/widget_orbit"
-        android:alpha="0.28"
+        android:alpha="0.18"
         android:importantForAccessibility="no" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="8dp">
+        android:id="@+id/widget_content"
+        android:padding="@dimen/widget_inset_small">
+        <TextView
+            android:id="@+id/today_date"
+            style="@style/WidgetLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/widget_refresh_size"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="@dimen/widget_header_reserve_small" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:id="@+id/spring_1"
+            android:layout_weight="1" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:baselineAligned="false"
             android:gravity="center_vertical"
-            android:baselineAligned="false">
+            android:id="@+id/hero_section">
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="horizontal"
-                android:baselineAligned="false">
+                android:orientation="vertical">
                 <TextView
                     android:id="@+id/shift_title"
                     style="@style/WidgetLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    android:text="@string/widget_shift_title" />
+                    android:visibility="gone" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:id="@+id/shift_emoji"
+                        style="@style/WidgetText"
+                        android:layout_width="@dimen/widget_emoji_box_small"
+                        android:layout_height="@dimen/widget_emoji_box_small"
+                        android:gravity="center"
+                        android:ellipsize="none"
+                        android:textSize="@dimen/widget_text_emoji_1"
+                        android:importantForAccessibility="no" />
+                    <TextView
+                        android:id="@+id/shift_name"
+                        style="@style/WidgetText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/widget_rhythm_small_2"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="@dimen/widget_text_name_2" />
+                </LinearLayout>
                 <TextView
-                    android:id="@+id/today_date"
+                    android:id="@+id/shift_status"
+                    style="@style/WidgetLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/widget_rhythm_small_1"
+                    android:textColor="@color/widget_accent" />
+                <TextView
+                    android:id="@+id/shift_time"
                     style="@style/WidgetLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="11sp" />
+                    android:layout_marginTop="@dimen/widget_rhythm_small_1" />
             </LinearLayout>
-            <ImageView
-                android:id="@+id/refresh_button"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:padding="3dp"
-                android:src="@drawable/widget_refresh"
-                android:contentDescription="@string/widget_refresh"
-                android:background="@drawable/widget_badge" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:minHeight="43dp"
             android:orientation="vertical"
-            android:gravity="center_vertical"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp">
+            android:id="@+id/spring_2"
+            android:layout_weight="1" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:id="@+id/schedule_section">
+            <TextView
+                android:id="@+id/cycle_info"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_progress_small"
+                android:layout_marginTop="@dimen/widget_rhythm_small_1"
+                android:minHeight="0dp"
+                android:maxHeight="@dimen/widget_progress_small"
+                android:background="@drawable/widget_slot"
+                android:progressDrawable="@drawable/progress_bar"
+                android:indeterminate="false" />
+            <TextView
+                android:id="@+id/next_shifts"
+                style="@style/WidgetLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/widget_rhythm_small_2" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:id="@+id/spring_3"
+            android:layout_weight="1" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:id="@+id/timing_panel"
+            android:background="@drawable/widget_panel"
+            android:padding="@dimen/widget_pad_block_small">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:baselineAligned="false">
+                android:baselineAligned="false"
+                android:gravity="center_vertical">
                 <TextView
-                    android:id="@+id/shift_emoji"
-                    style="@style/WidgetText"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:gravity="center"
-                    android:ellipsize="none"
-                    android:textSize="18sp"
-                    android:importantForAccessibility="no" />
-                <LinearLayout
+                    android:id="@+id/clock_label"
+                    style="@style/WidgetLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/widget_now" />
+                <TextClock
+                    android:id="@+id/live_clock"
+                    style="@style/WidgetTimer"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/shift_name"
-                        style="@style/WidgetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textSize="32sp"
-                        android:fontFamily="sans-serif-medium" />
-                    <TextView
-                        android:id="@+id/shift_status"
-                        style="@style/WidgetLabel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:visibility="gone" />
-                </LinearLayout>
+                    android:layout_marginStart="@dimen/widget_rhythm_small_2"
+                    android:gravity="end"
+                    android:format12Hour="HH:mm:ss"
+                    android:format24Hour="HH:mm:ss"
+                    android:textColor="@color/widget_ink" />
             </LinearLayout>
-            <TextView
-                android:id="@+id/shift_time"
-                style="@style/WidgetText"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:layout_marginTop="1dp" />
-        </LinearLayout>
-        <TextView
-            android:id="@+id/cycle_info"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="10sp" />
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            style="@android:style/Widget.ProgressBar.Horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="3dp"
-            android:layout_marginTop="3dp"
-            android:minHeight="0dp"
-            android:maxHeight="4dp"
-            android:progressDrawable="@drawable/progress_bar"
-            android:indeterminate="false"
-            android:max="8"
-            android:progress="7" />
-        <TextView
-            android:id="@+id/next_shifts"
-            style="@style/WidgetLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:maxLines="2"
-            android:layout_marginTop="4dp" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="3dp"
-            android:layout_marginBottom="3dp"
-            android:baselineAligned="false">
-            <TextView
-                style="@style/WidgetLabel"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/widget_now" />
-            <TextClock
-                android:id="@+id/live_clock"
-                style="@style/WidgetTimer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:format12Hour="HH:mm:ss"
-                android:format24Hour="HH:mm:ss"
-                android:textSize="18sp"
-                android:textColor="@color/widget_ink" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/widget_panel"
-            android:padding="6dp">
-            <TextView
-                android:id="@+id/countdown_label"
-                style="@style/WidgetLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_accent"
-                android:textSize="10sp" />
-            <Chronometer
-                android:id="@+id/countdown_chronometer"
-                style="@style/WidgetTimer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="21sp"
-                android:visibility="gone" />
-            <TextView
-                android:id="@+id/countdown_text"
-                style="@style/WidgetTimer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="21sp" />
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:layout_marginTop="@dimen/widget_rhythm_small_2">
+                <TextView
+                    android:id="@+id/countdown_label"
+                    style="@style/WidgetLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_accent" />
+                <Chronometer
+                    android:id="@+id/countdown_chronometer"
+                    style="@style/WidgetTimer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/widget_rhythm_small_2"
+                    android:gravity="end"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/countdown_text"
+                    style="@style/WidgetTimer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/widget_rhythm_small_2"
+                    android:gravity="end" />
+            </LinearLayout>
             <TextView
                 android:id="@+id/countdown_detail"
                 style="@style/WidgetLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="9sp"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="@dimen/widget_rhythm_small_1" />
         </LinearLayout>
     </LinearLayout>
     <ImageView
+        android:id="@+id/refresh_button"
+        android:layout_width="@dimen/widget_refresh_size"
+        android:layout_height="@dimen/widget_refresh_size"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="@dimen/widget_inset_small"
+        android:layout_marginEnd="@dimen/widget_inset_small"
+        android:padding="@dimen/widget_refresh_padding_mini"
+        android:background="@drawable/widget_refresh_button"
+        android:src="@drawable/widget_refresh"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/widget_refresh" />
+    <ImageView
         android:id="@+id/companion_portrait"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="@dimen/widget_portrait_small"
+        android:layout_height="@dimen/widget_portrait_height_companion"
         android:visibility="gone"
+        android:src="@drawable/widget_companion"
+        android:scaleType="fitCenter"
         android:importantForAccessibility="no" />
 </FrameLayout>

@@ -203,6 +203,22 @@ public class WidgetScheduleTest {
                 MyWidgetProvider.nextStateChange(before, slot, anchor(), CYCLE, defs()));
     }
 
+    @Test public void formattingTransitionsAreScheduledJustBelowTenHoursAndOneHour() {
+        Calendar now = at(2026, 4, 18, 9, 0);
+        String[] cycle = {"白班"};
+        MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor(), cycle, defs());
+        long tenHours = at(2026, 4, 18, 10, 0).getTimeInMillis();
+        long oneHour = at(2026, 4, 18, 19, 0).getTimeInMillis();
+        assertEquals(tenHours + 1, MyWidgetProvider.nextStateChange(now, slot, anchor(), cycle, defs()));
+        now.setTimeInMillis(tenHours);
+        assertEquals(tenHours + 1, MyWidgetProvider.nextStateChange(now, slot, anchor(), cycle, defs()));
+        now.setTimeInMillis(tenHours + 1);
+        assertEquals(oneHour + 1, MyWidgetProvider.nextStateChange(now, slot, anchor(), cycle, defs()));
+        now.setTimeInMillis(oneHour + 1);
+        assertEquals(at(2026, 4, 18, 20, 0).getTimeInMillis(),
+                MyWidgetProvider.nextStateChange(now, slot, anchor(), cycle, defs()));
+    }
+
     @Test public void exactEndTargetsTheNextStartNeverAnExpiredShift() {
         Calendar end = at(2026, 4, 18, 20, 0);
         MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(end, anchor(), CYCLE, defs());
@@ -212,7 +228,7 @@ public class WidgetScheduleTest {
     }
 
     @Test public void midnightIsABoundaryEvenDuringARestDay() {
-        Calendar now = at(2026, 4, 20, 9, 0);
+        Calendar now = at(2026, 4, 20, 23, 0);
         MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor(), CYCLE, defs());
         assertEquals(at(2026, 4, 21, 0, 0).getTimeInMillis(),
                 MyWidgetProvider.nextStateChange(now, slot, anchor(), CYCLE, defs()));

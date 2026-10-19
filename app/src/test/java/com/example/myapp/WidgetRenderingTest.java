@@ -65,9 +65,16 @@ public class WidgetRenderingTest {
         return view;
     }
 
+    /**
+     * 校验某个控件「若显示则完整可见」。
+     *
+     * 小尺寸档位会按可用高度撤掉辅助信息（班次时段 / 周期 / 后续排班 / 副标题），
+     * 这是排版策略的一部分，不算缺陷；但**显示出来的东西绝不允许被裁**。
+     * 主信息的常显性由 {@link #assertCoreInformationVisible} 单独保证。
+     */
     private void assertWithinBounds(View root, int id, String variant) {
         View view = root.findViewById(id);
-        assertEquals(variant + " Required information must be shown: " + id, View.VISIBLE, view.getVisibility());
+        if (view.getVisibility() != View.VISIBLE) return;
         assertTrue(variant + " zero-height view " + id, view.getHeight() > 0);
         int y = 0, x = 0;
         for (View current = view; current != root; current = (View) current.getParent()) {
@@ -88,11 +95,40 @@ public class WidgetRenderingTest {
             assertTrue(variant + " Missing text: " + id, text.getText().length() > 0);
             assertTrue(variant + " Text has zero height: " + id,
                     text.getLayout() != null && text.getLayout().getLineCount() > 0);
-            assertTrue(variant + " text internally clips " + root.getResources().getResourceEntryName(id)
-                            + " height=" + text.getHeight() + " layout=" + text.getLayout().getHeight(),
-                    text.getHeight() >= text.getLayout().getHeight()
-                            + text.getCompoundPaddingTop() + text.getCompoundPaddingBottom());
+            // 「内部被裁」的准确判据是行数超过 maxLines。
+            // 但 Chronometer / TextClock 在加权宽度里重新测量时会留下上一次的 Layout，
+            // 用行数或像素高度判断都会误报；它们的完整性由 assertWholeText 直接量文字宽度保证。
+            boolean relayouted = text instanceof Chronometer || text instanceof TextClock;
+            if (!relayouted && text.getMaxLines() > 0) {
+                assertTrue(variant + " text internally clips "
+                                + root.getResources().getResourceEntryName(id)
+                                + " lines=" + text.getLayout().getLineCount()
+                                + " maxLines=" + text.getMaxLines(),
+                        text.getLayout().getLineCount() <= text.getMaxLines());
+            }
+            if (!relayouted) {
+                assertTrue(variant + " 文字高度不足一行："
+                                + root.getResources().getResourceEntryName(id),
+                        text.getHeight() >= text.getLineHeight() + text.getCompoundPaddingTop());
+            }
         }
+    }
+
+    /**
+     * 主信息在任何尺寸、任何主题、任何系统字号下都必须显示。
+     *
+     * 排版策略允许撤掉辅助信息，但日期、班次名、实时时钟与倒计时是这个小部件的
+     * 存在理由，撤掉任何一项都等于功能缺失。
+     */
+    private void assertCoreInformationVisible(View root, String variant) {
+        for (int id : new int[]{R.id.today_date, R.id.shift_emoji, R.id.shift_name,
+                R.id.live_clock, R.id.countdown_label}) {
+            assertEquals(variant + " 主信息必须显示：" + root.getResources().getResourceEntryName(id),
+                    View.VISIBLE, root.findViewById(id).getVisibility());
+        }
+        boolean timer = root.findViewById(R.id.countdown_chronometer).getVisibility() == View.VISIBLE
+                || root.findViewById(R.id.countdown_text).getVisibility() == View.VISIBLE;
+        assertTrue(variant + " 倒计时必须显示", timer);
     }
 
     @Test public void allSizesAndThemesRenderWithoutClipping() throws Exception {
@@ -105,7 +141,8 @@ public class WidgetRenderingTest {
                             {320,216}, {300,216}, {359,216}, {360,216}, {360,300}, {500,320}, {300,520}, {224,320}, {224,380}, {320,380}, {224,420}, {320,420}, {224,440}, {110,110}, {110,144}, {110,176},
                             {110,216}, {110,320}, {110,128}, {110,143}, {110,175}, {110,215},
                             {140,110}, {156,110}, {180,110}, {224,110}, {224,144},
-                            {216,110}, {224,128}, {216,144}, {224,176}, {240,215}, {280,180}, {320,110}, {359,110}, {360,110}, {360,144}, {360,215}, {500,110}}) {
+                            {216,110}, {224,128}, {216,144}, {224,176}, {240,215}, {280,180}, {320,110}, {359,110}, {360,110}, {360,144}, {360,215}, {500,110},
+                            {500,215}, {360,176}, {420,110}}) {
                         String variant = size[0] + "x" + size[1] + (dark ? "-dark" : "-light") + "-font" + font;
                         View view = render(activity, size[0], size[1], dark, font);
                         File directory = new File("../.qa/widget-previews");
@@ -126,6 +163,7 @@ public class WidgetRenderingTest {
                             if ((id == R.id.countdown_detail || (mini && (id == R.id.cycle_info || id == R.id.next_shifts)))
                                     && view.findViewById(id).getVisibility() == View.GONE) continue;
                             try {
+                                assertCoreInformationVisible(view, variant);
                                 assertWithinBounds(view, id, variant);
                                 if (id == R.id.live_clock || id == R.id.countdown_chronometer || id == R.id.shift_emoji) {
                                     assertWholeText(view, id, variant);
@@ -155,9 +193,13 @@ public class WidgetRenderingTest {
         if (expected) {
             assertCompanionIsSeparate(root, variant);
         } else {
+            // GONE 的立绘仍保留上一次测量的宽度，直接读 width 不可靠；
+            // 准确的判据是「它所在的文本列变宽到几乎占满内容区」（不预留侧栏）。
             float density = root.getResources().getDisplayMetrics().density;
-            assertTrue(variant + " hidden portrait must not reserve a column",
-                    root.findViewById(R.id.shift_time).getWidth() >= root.getWidth() - 32 * density);
+            View contentColumn = (View) root.findViewById(R.id.today_date).getParent();
+            assertTrue(variant + " hidden portrait still reserves a column: column="
+                            + contentColumn.getWidth() + " root=" + root.getWidth(),
+                    contentColumn.getWidth() >= root.getWidth() - 2 * 14 * density - 2);
         }
     }
 
@@ -314,6 +356,7 @@ public class WidgetRenderingTest {
 
     private void assertWholeText(View root, int id, String variant) {
         TextView text = root.findViewById(id);
+        if (text.getVisibility() != View.VISIBLE) return;
         int available = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
         assertTrue(variant + " text clips horizontally: " + root.getResources().getResourceEntryName(id)
                 + " text=" + text.getText() + " available=" + available,

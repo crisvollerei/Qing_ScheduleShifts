@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  小部件卡片背景。
+
+  圆角半径必须**不小于宿主的裁切半径**：Android 12+ 的 Launcher 会按
+  system_app_widget_background_radius（默认 28dp）把整个小部件裁成圆角矩形。
+  如果卡片自己的圆角更小（原先 24dp / 16dp），宿主的裁切就会把卡片自己的
+  圆角与描边切掉一角，看起来像「边框在角落里消失」。
+
+  半径统一引用 @dimen/widget_corner_radius（28dp），与系统默认值一致。
+-->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient android:startColor="@color/widget_surface" android:endColor="@color/widget_surface_end" android:angle="315" />
     <stroke android:width="1dp" android:color="@color/widget_stroke" />
-    <corners android:radius="24dp" />
+    <corners android:radius="@dimen/widget_corner_radius" />
 </shape>
