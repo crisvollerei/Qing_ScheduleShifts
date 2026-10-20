@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Separate IDs prevent reapplying stale day/night XML drawables to the same tree. -->
+    <item type="layout" name="widget_handbook_minimum_night">@layout/widget_handbook_minimum</item>
+    <item type="layout" name="widget_handbook_wide_night">@layout/widget_handbook_wide</item>
+    <item type="layout" name="widget_handbook_full_night">@layout/widget_handbook_full</item>
+</resources>

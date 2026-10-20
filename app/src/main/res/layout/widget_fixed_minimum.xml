@@ -1,102 +1,215 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_container" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_card_background">
-    <FrameLayout android:id="@+id/card_content" android:layout_width="match_parent" android:layout_height="match_parent">
-        <FrameLayout android:id="@+id/header_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.296875000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.000000000">
-                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/header_size" android:width="104dp" android:height="14dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/card_header" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false" android:paddingLeft="0dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:layout_alignLeft="@id/header_size" android:layout_alignTop="@id/header_size" android:layout_alignRight="@id/header_size" android:layout_alignBottom="@id/header_size">
-                                    <TextView android:id="@+id/today_date" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="10/19" android:textSize="10dp"/>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.000000000"/>
-                    </LinearLayout>
+<!--
+  最小卡：日期 / 班次 / 倒计时 / 当前时间。
+
+  四块内容全部 wrap_content，块间只放一条弹性间隔。空间紧时（110×110）间隔
+  自己缩到 0，内容按真实字形高度排满；空间富余时也只是间隔变大，不会把元素
+  拉开成一盘散沙。emoji 放在固定方框里，不参与文字行高计算。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background">
+
+    <LinearLayout
+        android:id="@+id/card_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:baselineAligned="false"
+        android:paddingLeft="12dp"
+        android:paddingTop="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="12dp">
+
+        <LinearLayout
+            android:id="@+id/card_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/today_date"
+                style="@style/WidgetCardLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10/20"
+                android:textSize="11dp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <LinearLayout
+            android:id="@+id/hero_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:baselineAligned="false">
+
+            <LinearLayout
+                android:id="@+id/shift_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <FrameLayout
+                    android:id="@+id/shift_emoji_box"
+                    android:layout_width="27dp"
+                    android:layout_height="27dp"
+                    android:importantForAccessibility="no">
+
+                    <TextView
+                        android:id="@+id/shift_emoji"
+                        style="@style/WidgetCardText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:importantForAccessibility="no"
+                        android:includeFontPadding="false"
+                        android:text="🌙"
+                        android:textSize="16dp" />
                 </FrameLayout>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.703125000"/>
+
+                <TextView
+                    android:id="@+id/shift_name"
+                    style="@style/WidgetCardName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="5dp"
+                    android:text="夜班"
+                    android:textSize="16dp" />
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/hero_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.734375000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.000000000">
-                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/hero_size" android:width="104dp" android:height="26dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <FrameLayout android:id="@+id/hero_section" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_alignLeft="@id/hero_size" android:layout_alignTop="@id/hero_size" android:layout_alignRight="@id/hero_size" android:layout_alignBottom="@id/hero_size">
-                                    <LinearLayout android:id="@+id/shift_row" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                        <TextView android:id="@+id/shift_emoji" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardText" android:gravity="center_vertical" android:text="☀️" android:importantForAccessibility="no" android:textSize="14dp"/>
-                                        <TextView android:id="@+id/shift_name" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardName" android:gravity="center_vertical" android:text="白班" android:paddingLeft="0dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="18dp"/>
-                                        <TextView android:id="@+id/shift_status" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="已结束" android:visibility="gone" android:paddingLeft="6dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="10dp"/>
-                                    </LinearLayout>
-                                    <TextView android:id="@+id/shift_time" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="已结束 · 08:00–20:00" android:visibility="gone" android:textSize="10dp"/>
-                                </FrameLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.000000000"/>
-                    </LinearLayout>
+
+            <TextView
+                android:id="@+id/shift_status"
+                style="@style/WidgetCardLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="待上班"
+                android:visibility="gone"
+                android:textSize="11dp" />
+
+            <TextView
+                android:id="@+id/shift_time"
+                style="@style/WidgetCardLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="20:00–次日 08:00"
+                android:visibility="gone"
+                android:textSize="11dp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <!--
+          倒计时块：标签与数字并排，右侧留给底部那行碎碎念。
+          最小卡只有 128dp，纵向塞不下「标签 / 数字 / 时钟 / 文案」四行，
+          所以标签挪到数字左侧，横向吃满整行宽度。
+        -->
+        <LinearLayout
+            android:id="@+id/countdown_block"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:baselineAligned="false">
+
+            <LinearLayout
+                android:id="@+id/timer_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <TextView
+                    android:id="@+id/countdown_label"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="4dp"
+                    android:text="距上班"
+                    android:textSize="11dp" />
+
+                <FrameLayout
+                    android:id="@+id/timer_line"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1">
+
+                    <FrameLayout
+                        android:id="@+id/countdown_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+                    <Chronometer
+                        android:id="@+id/countdown_chronometer"
+                        style="@style/WidgetCardTimer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:visibility="gone" />
                 </FrameLayout>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.265625000"/>
-            </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/countdown_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.296875000"/>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.703125000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.000000000">
-                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/countdown_size" android:width="104dp" android:height="38dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/countdown_block" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false" android:layout_alignLeft="@id/countdown_size" android:layout_alignTop="@id/countdown_size" android:layout_alignRight="@id/countdown_size" android:layout_alignBottom="@id/countdown_size">
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="14">
-                                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                            <TextView android:id="@+id/countdown_label" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="距上班" android:textSize="10dp"/>
-                                            <TextView android:id="@+id/countdown_detail" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="10/20 20:00 · 夜班" android:layout_weight="1" android:visibility="gone" android:paddingLeft="12dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="10dp"/>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="24">
-                                        <FrameLayout android:id="@+id/timer_line" android:layout_width="match_parent" android:layout_height="match_parent">
-                                            <FrameLayout android:id="@+id/countdown_container" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                                                <Chronometer android:id="@+id/countdown_chronometer" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardTimer" android:gravity="start|center_vertical" android:visibility="gone" android:textSize="20dp"/>
-                                            </FrameLayout>
-                                            <TextView android:id="@+id/countdown_text" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardTimer" android:gravity="center_vertical" android:text="23:07:21" android:textSize="20dp"/>
-                                        </FrameLayout>
-                                    </FrameLayout>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.000000000"/>
-                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/countdown_text"
+                        style="@style/WidgetCardTimer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:text="23:07:21"
+                        android:textSize="23dp" />
+
+                    <TextView
+                        android:id="@+id/countdown_detail"
+                        style="@style/WidgetCardLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:visibility="gone"
+                        android:textSize="11dp" />
                 </FrameLayout>
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/clock_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.734375000"/>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.265625000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.000000000">
-                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/clock_size" android:width="104dp" android:height="14dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/clock_row" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false" android:layout_alignLeft="@id/clock_size" android:layout_alignTop="@id/clock_size" android:layout_alignRight="@id/clock_size" android:layout_alignBottom="@id/clock_size">
-                                    <TextView android:id="@+id/clock_label" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="现在" android:textSize="10dp"/>
-                                    <TextClock android:id="@+id/live_clock" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:format12Hour="HH:mm:ss" android:format24Hour="HH:mm:ss" android:fontFeatureSettings="tnum" android:paddingLeft="4dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="10dp"/>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.000000000"/>
-                    </LinearLayout>
-                </FrameLayout>
-            </LinearLayout>
-        </FrameLayout>
-    </FrameLayout>
-    <FrameLayout android:id="@+id/refresh_position" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingLeft="0dp" android:paddingTop="1dp" android:paddingRight="5dp" android:paddingBottom="0dp">
-        <RelativeLayout android:id="@+id/refresh_touch_target" android:layout_width="wrap_content" android:layout_height="wrap_content" android:foreground="@drawable/widget_refresh_feedback" android:focusable="true" android:contentDescription="@string/widget_refresh" android:paddingLeft="11dp" android:paddingTop="11dp" android:paddingRight="11dp" android:paddingBottom="11dp" android:layout_gravity="top|right">
-            <ImageView android:id="@+id/refresh_button" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:background="@drawable/widget_refresh_button" android:src="@drawable/widget_refresh" android:scaleType="fitCenter" android:importantForAccessibility="no" android:layout_alignLeft="@id/refresh_size" android:layout_alignTop="@id/refresh_size" android:layout_alignRight="@id/refresh_size" android:layout_alignBottom="@id/refresh_size"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/refresh_size" android:width="26dp" android:height="26dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-        </RelativeLayout>
-    </FrameLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <!-- 最小卡只放当前时间：128dp 里塞不下人物碎碎念，硬放会挤掉倒计时。 -->
+        <LinearLayout
+            android:id="@+id/clock_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:baselineAligned="false">
+
+            <TextClock
+                android:id="@+id/live_clock"
+                style="@style/WidgetCardLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
+                android:format12Hour="HH:mm:ss"
+                android:format24Hour="HH:mm:ss"
+                android:textSize="11dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+
 </FrameLayout>

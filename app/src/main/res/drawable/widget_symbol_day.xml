@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="25dp" android:height="25dp" android:viewportWidth="32" android:viewportHeight="32">
+    <path android:pathData="M16,8a8,8 0,1 0,0,16a8,8 0,0 0,0,-16M15,1h2v5h-2zM15,26h2v5h-2zM1,15h5v2H1zM26,15h5v2h-5zM4,5l1,-1 4,4 -1,1zM24,24l1,-1 4,4 -1,1zM4,27l4,-4 1,1 -4,4zM23,8l4,-4 1,1 -4,4z" android:fillColor="@color/widget_accent" />
+</vector>

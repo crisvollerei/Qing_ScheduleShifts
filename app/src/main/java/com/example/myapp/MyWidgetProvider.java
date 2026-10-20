@@ -458,13 +458,29 @@ public class MyWidgetProvider extends AppWidgetProvider {
             Map<SizeF, RemoteViews> variants = new LinkedHashMap<>();
             if (sizes != null) {
                 for (SizeF size : sizes) {
-                    if (size.getWidth() <= 0 || size.getHeight() <= 0) continue;
+                    if (!Float.isFinite(size.getWidth()) || !Float.isFinite(size.getHeight())
+                            || size.getWidth() <= 0 || size.getHeight() <= 0) continue;
                     variants.put(size, buildViews(context, form, size.getWidth(), size.getHeight(),
                             now, slot, anchor, cycle, defs, countdown));
                     if (variants.size() == 16) break;
                 }
             }
-            if (!variants.isEmpty()) return new RemoteViews(variants);
+            if (!variants.isEmpty()) {
+                // Some hosts report the cell size but measure a smaller content rectangle.
+                // Let the framework choose a less decorated variant using the real bounds.
+                List<SizeF> advertised = new ArrayList<>(variants.keySet());
+                for (float deduction : new float[]{40, 20}) {
+                    for (SizeF size : advertised) {
+                        if (variants.size() >= 16) break;
+                        SizeF content = new SizeF(Math.max(48, size.getWidth() - deduction),
+                                Math.max(48, size.getHeight() - deduction));
+                        if (!variants.containsKey(content)) variants.put(content,
+                                buildViews(context, form, content.getWidth(), content.getHeight(),
+                                        now, slot, anchor, cycle, defs, countdown));
+                    }
+                }
+                return new RemoteViews(variants);
+            }
         }
         // MIN_WIDTH and MAX_HEIGHT belong to portrait; MAX_WIDTH and MIN_HEIGHT to landscape.
         int minW = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, (int) form.width);

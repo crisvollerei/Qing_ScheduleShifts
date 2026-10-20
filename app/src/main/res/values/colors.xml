@@ -40,4 +40,12 @@
     <color name="widget_accent">#6E5C8B</color>
     <color name="widget_orbit">#BCC5DF</color>
     <color name="widget_badge">#EEF1F7</color>
+    <!--
+      人物对白气泡，取自网页 companion.css 的主题变量：
+      companion-paper #fffefd、companion-wash #f2ecfa、companion-line #d8cde6。
+      RemoteViews 没有阴影，用描边加左上角渐变代替网页的 box-shadow 高光。
+    -->
+    <color name="widget_bubble_fill">#FFFEFD</color>
+    <color name="widget_bubble_wash">#F2ECFA</color>
+    <color name="widget_bubble_stroke">#D8CDE6</color>
 </resources>

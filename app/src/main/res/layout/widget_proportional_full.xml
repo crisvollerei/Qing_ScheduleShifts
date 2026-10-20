@@ -1,165 +1,382 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rows use the measured width; text, artwork and row heights keep one uniform scale. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_container" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_card_background">
-    <FrameLayout android:id="@+id/card_content" android:layout_width="match_parent" android:layout_height="match_parent">
-        <FrameLayout android:id="@+id/header_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.256250000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="264">
-                            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/header_size" android:height="42dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/card_header" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false" android:paddingLeft="0dp" android:paddingTop="0dp" android:paddingRight="44dp" android:paddingBottom="0dp" android:layout_alignLeft="@id/header_size" android:layout_alignTop="@id/header_size" android:layout_alignRight="@id/header_size" android:layout_alignBottom="@id/header_size">
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="20">
-                                        <TextView android:id="@+id/today_date" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="10月19日 周一" android:textSize="12dp"/>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="22">
-                                        <LinearLayout android:id="@+id/clock_row" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                            <TextView android:id="@+id/clock_label" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="现在" android:textSize="12dp"/>
-                                            <TextClock android:id="@+id/live_clock" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:format12Hour="HH:mm:ss" android:format24Hour="HH:mm:ss" android:fontFeatureSettings="tnum" android:paddingLeft="4dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="12dp"/>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                    </LinearLayout>
-                </FrameLayout>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.743750000"/>
+<!--
+  完整卡：日期时间 / 班次+立绘 / 倒计时 / 未来七天。
+
+  每个内容块都是 wrap_content，块与块之间只放一条弹性间隔。文字行高由 Android
+  实测决定，剩余空间全部由间隔吸收：启动器的内边距差异只会让间隔变窄或变宽，
+  不会压缩字形、也不会把 emoji 顶离班名。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background">
+
+    <LinearLayout
+        android:id="@+id/card_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:baselineAligned="false"
+        android:paddingLeft="20dp"
+        android:paddingTop="20dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="20dp">
+
+        <!-- 日期与当前时间 -->
+        <LinearLayout
+            android:id="@+id/card_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/today_date"
+                style="@style/WidgetCardLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10月19日 周一"
+                android:textSize="15dp" />
+
+            <LinearLayout
+                android:id="@+id/clock_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <TextView
+                    android:id="@+id/clock_label"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="现在"
+                    android:textSize="15dp" />
+
+                <TextClock
+                    android:id="@+id/live_clock"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFeatureSettings="tnum"
+                    android:format12Hour="HH:mm:ss"
+                    android:format24Hour="HH:mm:ss"
+                    android:paddingLeft="4dp"
+                    android:textSize="15dp" />
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/hero_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.737500000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="264">
-                            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/hero_size" android:height="80dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/hero_section" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false" android:layout_alignLeft="@id/hero_size" android:layout_alignTop="@id/hero_size" android:layout_alignRight="@id/hero_size" android:layout_alignBottom="@id/hero_size">
-                                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="172">
-                                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                                            <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="44">
-                                                <LinearLayout android:id="@+id/shift_row" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                                    <TextView android:id="@+id/shift_emoji" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardText" android:gravity="center_vertical" android:text="☀️" android:importantForAccessibility="no" android:textSize="18dp"/>
-                                                    <TextView android:id="@+id/shift_name" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardName" android:gravity="center_vertical" android:text="白班" android:paddingLeft="4dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="28dp"/>
-                                                    <TextView android:id="@+id/shift_status" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="已结束" android:visibility="gone" android:paddingLeft="6dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="12dp"/>
-                                                </LinearLayout>
-                                            </FrameLayout>
-                                            <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="36">
-                                                <TextView android:id="@+id/shift_time" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="已结束 · 08:00–20:00" android:visibility="visible" android:textSize="12dp"/>
-                                            </FrameLayout>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="92" android:paddingLeft="0dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp"/>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                    </LinearLayout>
-                </FrameLayout>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.262500000"/>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <!-- 班次：文字在左，立绘在右 -->
+        <LinearLayout
+            android:id="@+id/hero_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <LinearLayout
+                android:id="@+id/shift_column"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="100"
+                android:orientation="vertical"
+                android:baselineAligned="false">
+
+                <LinearLayout
+                    android:id="@+id/shift_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:baselineAligned="false">
+
+                    <FrameLayout
+                        android:id="@+id/shift_emoji_box"
+                        android:layout_width="39dp"
+                        android:layout_height="39dp"
+                        android:importantForAccessibility="no">
+
+                        <TextView
+                            android:id="@+id/shift_emoji"
+                            style="@style/WidgetCardText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:importantForAccessibility="no"
+                            android:includeFontPadding="false"
+                            android:text="☀️"
+                            android:textSize="25dp" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/shift_name"
+                        style="@style/WidgetCardName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingLeft="7dp"
+                        android:text="白班"
+                        android:textSize="25dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/shift_status"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="待上班"
+                    android:visibility="visible"
+                    android:textSize="15dp" />
+
+                <TextView
+                    android:id="@+id/shift_time"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="20:00–次日 08:00"
+                    android:visibility="visible"
+                    android:textSize="15dp" />
+
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/countdown_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.268750000"/>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.731250000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="264">
-                            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/countdown_size" android:height="58dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/countdown_block" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false" android:layout_alignLeft="@id/countdown_size" android:layout_alignTop="@id/countdown_size" android:layout_alignRight="@id/countdown_size" android:layout_alignBottom="@id/countdown_size">
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="18">
-                                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                            <TextView android:id="@+id/countdown_label" android:layout_width="wrap_content" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="距上班" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/countdown_detail" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="10/20 20:00 · 夜班" android:layout_weight="1" android:visibility="visible" android:paddingLeft="12dp" android:paddingTop="0dp" android:paddingRight="0dp" android:paddingBottom="0dp" android:textSize="12dp"/>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="40">
-                                        <FrameLayout android:id="@+id/timer_line" android:layout_width="match_parent" android:layout_height="match_parent">
-                                            <FrameLayout android:id="@+id/countdown_container" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
-                                                <Chronometer android:id="@+id/countdown_chronometer" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardTimer" android:gravity="start|center_vertical" android:visibility="gone" android:textSize="32dp"/>
-                                            </FrameLayout>
-                                            <TextView android:id="@+id/countdown_text" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardTimer" android:gravity="center_vertical" android:text="23:07:21" android:textSize="32dp"/>
-                                        </FrameLayout>
-                                    </FrameLayout>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                    </LinearLayout>
+
+            <!--
+              人物列：立绘在上，碎碎念在下。
+              文案放在人物正下方，读起来就是角色本人在说话；放进班次块会和班名挤在一起。
+            -->
+            <!--
+              人物列按权重分宽，而不是写死 118dp：
+              卡片被拉到 224dp 宽时固定宽度会把文字列挤没了，
+              按 100:37 分就能等比收缩。
+            -->
+            <LinearLayout
+                android:id="@+id/portrait_column"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="37"
+                android:orientation="vertical"
+                android:baselineAligned="false">
+
+                <ImageView
+                    android:id="@+id/companion_portrait"
+                    android:layout_width="match_parent"
+                    android:layout_height="92dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/widget_companion" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <!-- 倒计时 -->
+        <LinearLayout
+            android:id="@+id/countdown_block"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/countdown_label"
+                style="@style/WidgetCardLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="距上班"
+                android:textSize="15dp" />
+
+            <FrameLayout
+                android:id="@+id/timer_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <FrameLayout
+                    android:id="@+id/countdown_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone">
+                    <Chronometer
+                        android:id="@+id/countdown_chronometer"
+                        style="@style/WidgetCardTimer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:visibility="gone" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/countdown_text"
+                    style="@style/WidgetCardTimer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start|center_vertical"
+                    android:text="23:07:21"
+                    android:textSize="36dp" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/countdown_detail"
+                style="@style/WidgetCardLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="10/20 20:00 · 夜班"
+                android:visibility="visible"
+                android:textSize="15dp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:importantForAccessibility="no" />
+
+        <!-- 未来七天：用 minHeight 占住「标题行 + 日期符号两行」的实际高度，
+             否则上面的弹性间隔会把剩余空间吃光，把周条压到卡片外。 -->
+        <LinearLayout
+            android:id="@+id/week_strip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="70dp"
+            android:orientation="vertical"
+            android:baselineAligned="false">
+
+            <LinearLayout
+                android:id="@+id/week_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+
+                <TextView
+                    android:id="@+id/week_title"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="未来七天"
+                    android:textSize="15dp" />
+
+                <TextView
+                    android:id="@+id/cycle_info"
+                    style="@style/WidgetCardLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:text="周期 2/8"
+                    android:textSize="15dp" />
+
+                <FrameLayout
+                    android:id="@+id/progress_position"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:paddingLeft="6dp">
+
+                    <ProgressBar
+                        android:id="@+id/progress_bar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="5dp"
+                        android:layout_gravity="center_vertical"
+                        android:max="8"
+                        android:progress="2"
+                        android:progressDrawable="@drawable/progress_bar" />
                 </FrameLayout>
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:id="@+id/week_position" android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.693750000"/>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.306250000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="264">
-                            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/week_size" android:height="58dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <LinearLayout android:id="@+id/week_strip" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false" android:layout_alignLeft="@id/week_size" android:layout_alignTop="@id/week_size" android:layout_alignRight="@id/week_size" android:layout_alignBottom="@id/week_size">
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="18">
-                                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="80">
-                                                <TextView android:id="@+id/week_title" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="未来七天" android:textSize="12dp"/>
-                                            </FrameLayout>
-                                            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="150">
-                                                <TextView android:id="@+id/cycle_info" android:layout_width="match_parent" android:layout_height="match_parent" style="@style/WidgetCardLabel" android:gravity="center_vertical" android:text="周期 1/8" android:textAlignment="viewEnd" android:textSize="12dp"/>
-                                            </FrameLayout>
-                                            <FrameLayout android:id="@+id/progress_position" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="34" android:paddingLeft="6dp" android:paddingTop="7.5dp" android:paddingRight="0dp" android:paddingBottom="7.5dp">
-                                                <ProgressBar android:id="@+id/progress_bar" android:layout_width="match_parent" android:layout_height="match_parent" style="?android:attr/progressBarStyleHorizontal" android:progressDrawable="@drawable/progress_bar" android:max="8" android:progress="1"/>
-                                            </FrameLayout>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="6">
-                                        <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"/>
-                                    </FrameLayout>
-                                    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="34">
-                                        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                                            <TextView android:id="@+id/week_day_0" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="20&#10;🌙" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_1" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="21&#10;🌿" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_2" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="22&#10;☀️" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_3" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="23&#10;🌙" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_4" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="24&#10;🌿" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_5" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="25&#10;🌿" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                            <TextView android:id="@+id/week_day_6" android:layout_width="0dp" android:layout_height="match_parent" style="@style/WidgetCardWeek" android:gravity="center_vertical" android:text="26&#10;🌿" android:layout_weight="1" android:textAlignment="center" android:textSize="12dp"/>
-                                        </LinearLayout>
-                                    </FrameLayout>
-                                </LinearLayout>
-                            </RelativeLayout>
-                        </FrameLayout>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="20"/>
-                    </LinearLayout>
-                </FrameLayout>
+
+            <LinearLayout
+                android:id="@+id/week_days"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+
+                <TextView
+                    android:id="@+id/week_day_0"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="20&#10;🌙"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_1"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="21&#10;🌿"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_2"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="22&#10;☀️"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_3"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="23&#10;🌙"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_4"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="24&#10;🌿"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_5"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="25&#10;🌿"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
+                <TextView
+                    android:id="@+id/week_day_6"
+                    style="@style/WidgetCardWeek"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="38dp"
+                    android:text="26&#10;🌿"
+                    android:textAlignment="center"
+                    android:textSize="15dp" />
             </LinearLayout>
-        </FrameLayout>
-        <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/portrait_position">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:baselineAligned="false">
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.737500000">
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:baselineAligned="false">
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.605263158"/>
-                        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.394736842">
-                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/portrait_size" android:width="80dp" android:height="80dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-                                <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:id="@+id/companion_portrait" android:src="@drawable/widget_companion" android:scaleType="fitCenter" android:importantForAccessibility="no" android:layout_alignLeft="@id/portrait_size" android:layout_alignTop="@id/portrait_size" android:layout_alignRight="@id/portrait_size" android:layout_alignBottom="@id/portrait_size"/>
-                            </RelativeLayout>
-                        </FrameLayout>
-                    </LinearLayout>
-                </FrameLayout>
-                <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.262500000"/>
-            </LinearLayout>
-        </FrameLayout>
-    </FrameLayout>
-    <FrameLayout android:id="@+id/refresh_position" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingLeft="0dp" android:paddingTop="1dp" android:paddingRight="5dp" android:paddingBottom="0dp">
-        <RelativeLayout android:id="@+id/refresh_touch_target" android:layout_width="wrap_content" android:layout_height="wrap_content" android:foreground="@drawable/widget_refresh_feedback" android:focusable="true" android:contentDescription="@string/widget_refresh" android:paddingLeft="11dp" android:paddingTop="11dp" android:paddingRight="11dp" android:paddingBottom="11dp" android:layout_gravity="top|right">
-            <ImageView android:id="@+id/refresh_button" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="5dp" android:background="@drawable/widget_refresh_button" android:src="@drawable/widget_refresh" android:scaleType="fitCenter" android:importantForAccessibility="no" android:layout_alignLeft="@id/refresh_size" android:layout_alignTop="@id/refresh_size" android:layout_alignRight="@id/refresh_size" android:layout_alignBottom="@id/refresh_size"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/refresh_size" android:width="26dp" android:height="26dp" android:visibility="invisible" android:importantForAccessibility="no" android:includeFontPadding="false"/>
-        </RelativeLayout>
-    </FrameLayout>
+
+
+        </LinearLayout>
+    </LinearLayout>
+
 </FrameLayout>

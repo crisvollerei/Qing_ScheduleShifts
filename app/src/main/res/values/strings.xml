@@ -25,11 +25,14 @@
     <string name="widget_refreshed">小组件已刷新</string>
     <string name="widget_description">实时班次、周期进度、后续排班与上下班倒计时；随尺寸和系统深浅色自动适配。</string>
     <string name="widget_alarm_title">让桌面班次准时切换</string>
-    <string name="widget_alarm_message">时钟和倒计时由桌面逐秒刷新。为让倒计时归零后，班次、日期和文案也准时切换，请允许“闹钟和提醒”。不允许时仍可使用，但系统可能延迟切换；点击小组件右上角可立即刷新。</string>
+    <string name="widget_alarm_message">时钟和倒计时由桌面逐秒刷新。为让倒计时归零后，班次、日期和文案也准时切换，请允许“闹钟和提醒”。不允许时仍可使用，但系统可能延迟切换；点击小组件打开应用可同步更新。</string>
     <string name="widget_alarm_allow">去允许</string>
     <string name="widget_alarm_later">暂不设置</string>
     <string name="widget_next_week">未来七天</string>
     <string name="widget_cycle_compact">周期 %1$d/%2$d</string>
     <string name="widget_countdown_work_compact">距上班</string>
     <string name="widget_countdown_off_compact">距下班</string>
+
+    <string name="widget_companion_day">今天也陪着你</string>
+    <string name="widget_companion_night">夜航也有陪伴</string>
 </resources>

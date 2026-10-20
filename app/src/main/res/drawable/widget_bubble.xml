@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  人物对白气泡本体。
+
+  几何照搬网页 companion.css 的 .companion-bubble：
+    圆角 17 / 18 / 5 / 18（右下角收紧，尾巴从那里伸出）
+    1dp 描边 + 内层留白，模拟网页那条 inset 阴影的内描边效果
+  浅色用径向渐变把左上角提亮一点，深色主题另有一份覆盖。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 外层：描边 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_bubble_stroke" />
+            <corners
+                android:topLeftRadius="17dp"
+                android:topRightRadius="18dp"
+                android:bottomRightRadius="5dp"
+                android:bottomLeftRadius="18dp" />
+        </shape>
+    </item>
+    <!-- 内层：留 1dp 露出描边；渐变模拟网页的径向高光 -->
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="315"
+                android:startColor="@color/widget_bubble_wash"
+                android:endColor="@color/widget_bubble_fill" />
+            <corners
+                android:topLeftRadius="16dp"
+                android:topRightRadius="17dp"
+                android:bottomRightRadius="4dp"
+                android:bottomLeftRadius="17dp" />
+        </shape>
+    </item>
+</layer-list>

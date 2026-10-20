@@ -142,37 +142,46 @@ public class WidgetHostRefreshTest {
             measure(surface, size[0], size[1]);
             reflector(FrameworkHost.class, host).updateAppWidget(providerPayload(manager, id));
             measure(surface, size[0], size[1]);
-            assertNotNull("Framework host must load the real widget", host.findViewById(R.id.refresh_touch_target));
+            assertNotNull("Framework host must load the real widget",
+                    host.findViewById(R.id.widget_container));
             assertNotSame("Old layout IDs must trigger reinflation during an in-place upgrade",
                     previousRoot, host.findViewById(R.id.widget_container));
-            View icon = host.findViewById(R.id.refresh_button);
-            View hitTarget = host.findViewById(R.id.refresh_touch_target);
-            assertEquals("The icon must stay square", icon.getWidth(), icon.getHeight(), 1);
-            assertTrue("The icon must not fill its finger-sized hit target", icon.getWidth() < hitTarget.getWidth());
             assertEquals("A chosen widget never changes composition while resizing",
                     form.layout,providerPayload(manager,id).getLayoutId());
             assertEquals(form==WidgetRenderer.Form.FULL||form==WidgetRenderer.Form.WIDE,
                     host.findViewById(R.id.companion_portrait)!=null);
+
+            // 每次重新绑定都必须换一个新的 Chronometer 实例。
+            // 这是计时器从"走时中断"里恢复的唯一可靠方式：对同一个实例重复
+            // start() 恢复不了（会一直停在旧值），换实例才行。
             Chronometer previous = host.findViewById(R.id.countdown_chronometer);
-            View target = host.findViewById(R.id.refresh_touch_target);
-            Rect hit = new Rect();
-            target.getDrawingRect(hit);
-            host.offsetDescendantRectToMyCoords(target, hit);
-            for (int dx : new int[]{0, -21, 21}) {
-                ShadowToast.reset();
-                tap(host, hit.exactCenterX() + dx, hit.exactCenterY());
-                assertNull("Refresh must not open the app", Shadows.shadowOf(activity).getNextStartedActivity());
-                assertEquals("A delivered refresh needs unambiguous feedback", "小组件已刷新",
-                        ShadowToast.getTextOfLatestToast());
+            for (int round = 0; round < 3; round++) {
                 reflector(FrameworkHost.class, host).updateAppWidget(providerPayload(manager, id));
                 measure(surface, size[0], size[1]);
                 Chronometer current = host.findViewById(R.id.countdown_chronometer);
-                assertNotSame("Manual refresh must replace the host timer", previous, current);
+                assertNotSame("Every rebind must replace the timer instance", previous, current);
                 previous = current;
             }
             AlarmManager alarms = (AlarmManager) activity.getSystemService(Activity.ALARM_SERVICE);
             assertEquals("Refresh must not enqueue animation alarms", 3,
                     Shadows.shadowOf(alarms).getScheduledAlarms().size());
+        }
+        if (form == WidgetRenderer.Form.WIDE && Build.VERSION.SDK_INT >= 31) {
+            host.setLayoutParams(new FrameLayout.LayoutParams(w,h));
+            host.setPadding(20,20,20,20);
+            MyWidgetProvider.refreshAll(activity);
+            measure(surface,w,h);
+            reflector(FrameworkHost.class,host).updateAppWidget(providerPayload(manager,id));
+            measure(surface,w,h);
+            assertEquals("Measured smaller content must select the two-column variant",View.GONE,
+                    host.findViewById(R.id.portrait_position).getVisibility());
+            assertEquals(2,host.findViewById(R.id.countdown_block).getPaddingLeft());
+            host.setPadding(0,0,0,0);
+            measure(surface,w,h);
+            assertEquals("Expanding the same host restores its portrait",View.VISIBLE,
+                    host.findViewById(R.id.portrait_position).getVisibility());
+            assertEquals("Reapply must restore the normal panel inset",7,
+                    host.findViewById(R.id.countdown_block).getPaddingLeft());
         }
         activity.finish();
     }

@@ -30,7 +30,14 @@
     <color name="widget_stroke">#3B526C</color>
     <color name="widget_ink">#ECF2F9</color>
     <color name="widget_muted">#B1C1D5</color>
-    <color name="widget_accent">#C0D8EA</color>
+    <color name="widget_accent">#DCC18C</color>
     <color name="widget_orbit">#647F9B</color>
     <color name="widget_badge">#294158</color>
+    <!--
+      蓝夜气泡，同样取自网页：
+      companion-paper #21354f、companion-wash #2a4161、companion-line #627ba2。
+    -->
+    <color name="widget_bubble_fill">#21354F</color>
+    <color name="widget_bubble_wash">#2A4161</color>
+    <color name="widget_bubble_stroke">#627BA2</color>
 </resources>

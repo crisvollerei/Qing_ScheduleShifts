@@ -5,8 +5,8 @@ plugins {
 // 版本号集中在此处维护。
 // versionCode 必须严格递增，否则覆盖安装会被系统拒绝（INSTALL_FAILED_VERSION_DOWNGRADE）；
 // versionName 是展示给用户的版本，可与 code 不必一一对应。
-def appVersionCode = 19
-def appVersionName = "0.2.7"
+def appVersionCode = 25
+def appVersionName = "0.4.0"
 
 // 签名凭据从本机 local.properties 或环境变量读取，避免密钥口令进入版本库。
 def localProperties = new Properties()
@@ -28,12 +28,16 @@ if (!hasReleaseSigning) {
 def widgetCompanionRes = layout.buildDirectory.dir("generated/res/widgetCompanions")
 def generateWidgetCompanions = tasks.register("generateWidgetCompanions") {
     inputs.files("src/main/assets/assets/chibi-day.png", "src/main/assets/assets/chibi-night.png")
+    inputs.files("src/main/assets/assets/character-day.webp", "src/main/assets/assets/character-night.webp")
     inputs.property("maxEdge", 320)
     outputs.dir(widgetCompanionRes)
     doLast {
         def directory = new File(widgetCompanionRes.get().asFile, "drawable-nodpi")
         directory.mkdirs()
         ["day", "night"].each { theme ->
+            java.nio.file.Files.copy(file("src/main/assets/assets/character-" + theme + ".webp").toPath(),
+                    new File(directory, "widget_character_" + theme + ".webp").toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             def source = javax.imageio.ImageIO.read(file("src/main/assets/assets/chibi-" + theme + ".png"))
             if (source == null) throw new GradleException("Invalid companion PNG: " + theme)
             double scale = Math.min(1d, 320d / Math.max(source.width, source.height))

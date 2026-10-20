@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 21-25 fallback; measured-bounds auto-size is added in values-v26. -->
+    <style name="WidgetHandbookLabel" parent="WidgetCardLabel">
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:scrollHorizontally">false</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+    <style name="WidgetHandbookName" parent="WidgetHandbookLabel">
+        <item name="android:textColor">@color/widget_ink</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">25sp</item>
+    </style>
+    <style name="WidgetHandbookGlyph" parent="WidgetHandbookName">
+    </style>
+    <style name="WidgetHandbookTimer" parent="WidgetHandbookLabel">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:textColor">@color/widget_accent</item>
+        <item name="android:textSize">27sp</item>
+        <item name="android:ellipsize">none</item>
+    </style>
+    <style name="WidgetHandbookWeek" parent="WidgetHandbookLabel">
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
+    </style>
+</resources>

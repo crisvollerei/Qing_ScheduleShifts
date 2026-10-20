@@ -5,7 +5,7 @@
     android:targetCellWidth="2" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:description="@string/widget_description"
-    android:previewLayout="@layout/widget_fixed_compact"
-    android:initialLayout="@layout/widget_fixed_compact"
+    android:previewLayout="@layout/widget_handbook_minimum"
+    android:initialLayout="@layout/widget_handbook_minimum"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="keyguard" />
