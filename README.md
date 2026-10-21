@@ -18,6 +18,8 @@
 - **只想用排班表** → 打开原项目，浏览器里直接用，无需安装
 - **想在桌面看班次** → 安装本项目的 APK，附带桌面小部件
 
+查看 [小组件渲染预览](#渲染预览)，对比三种构图的银昼与蓝夜主题。
+
 ---
 
 ## 📱 项目构成
@@ -115,6 +117,7 @@ ScheduleShifts/
 ├── scripts/serve.mjs              # 无依赖本机预览服务
 ├── docs/DESIGN_NOTES.md           # 银昼 / 蓝夜视觉与交互设计说明
 ├── docs/BACKUP_FORMAT.md          # 备份编码与数据版本约定
+├── docs/images/widgets/          # 三种小组件的银昼 / 蓝夜原生渲染图
 ├── package.json                   # 仅用于开发测试，网页运行不需要
 └── README.md
 ```
@@ -274,6 +277,19 @@ def appVersionName = "0.3.0"
 
 小组件与网页共用排班配置，外观跟随**系统深浅色模式**，独立于网页的主题设置。
 银昼采用珍珠白 / 灰紫，蓝夜采用深海蓝 / 暖金；装饰与人物来自源网页项目，全部限制在卡片内部。
+
+### 渲染预览
+
+以下六张图片由当前小组件的原生布局分别渲染，使用同一份示例排班，不是手机截图。
+每行对应一种构图，左右分别展示银昼与蓝夜主题。
+
+| 银昼 · 浅色 | 蓝夜 · 深色 |
+| :---: | :---: |
+| **小方卡** · 184×210dp<br><br><img src="docs/images/widgets/day-minimum.png" alt="银昼小方卡：日期、班次、倒计时、当前时间与明日提示" width="184"> | **小方卡** · 184×210dp<br><br><img src="docs/images/widgets/night-minimum.png" alt="蓝夜小方卡：日期、班次、倒计时、当前时间与明日提示" width="184"> |
+| **三段横条** · 360×128dp<br><br><img src="docs/images/widgets/day-wide.png" alt="银昼三段横条：左侧班次、中间时钟与倒计时、右侧立绘" width="360"> | **三段横条** · 360×128dp<br><br><img src="docs/images/widgets/night-wide.png" alt="蓝夜三段横条：左侧班次、中间时钟与倒计时、右侧立绘" width="360"> |
+| **完整方卡** · 304×320dp<br><br><img src="docs/images/widgets/day-full.png" alt="银昼完整方卡：班次与倒计时、透明 Q 版人物、明日安排和未来七天" width="304"> | **完整方卡** · 304×320dp<br><br><img src="docs/images/widgets/night-full.png" alt="蓝夜完整方卡：班次与倒计时、透明 Q 版人物、明日安排和未来七天" width="304"> |
+
+> 图中尺寸是示例画布，不代表固定桌面格数。实际显示会随 Launcher 可用空间、系统字体与缩放设置调整，以实机为准。
 
 ### 三种构图
 
