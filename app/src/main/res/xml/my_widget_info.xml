@@ -5,7 +5,7 @@
     android:targetCellWidth="2" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:description="@string/widget_description"
-    android:previewLayout="@layout/widget_handbook_minimum"
-    android:initialLayout="@layout/widget_handbook_minimum"
+    android:previewLayout="@layout/widget_handbook_minimum_v2"
+    android:initialLayout="@layout/widget_handbook_minimum_v2"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="keyguard" />

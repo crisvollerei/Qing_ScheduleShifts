@@ -4,5 +4,5 @@
     android:minResizeWidth="224dp" android:minResizeHeight="240dp"
     android:targetCellWidth="4" android:targetCellHeight="4"
     android:updatePeriodMillis="1800000" android:description="@string/widget_description"
-    android:previewLayout="@layout/widget_handbook_full" android:initialLayout="@layout/widget_handbook_full"
+    android:previewLayout="@layout/widget_handbook_full_v2" android:initialLayout="@layout/widget_handbook_full_v2"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" />

@@ -215,8 +215,8 @@ schedule { manifestPlaceholders = [appLabel: "排班"] }
 `app/build.gradle` 顶部集中维护：
 
 ```groovy
-def appVersionCode = 25
-def appVersionName = "0.4.0"
+def appVersionCode = 27
+def appVersionName = "0.3.0"
 ```
 
 > ⚠️ `versionCode` 必须**严格递增**，否则覆盖安装会被系统拒绝
@@ -293,7 +293,8 @@ def appVersionName = "0.4.0"
 - 布局只使用 RemoteViews 支持的原生容器；时钟、倒计时、日期与排班不栅格化。
 - 内容实际应用圆角安全内缩；背景声明系统识别的 `android.R.id.background`，装饰不出血。
 - Android 8+ 使用原生 TextView 自动字号，按实际测量宽高收敛，而不是完全相信桌面上报的尺寸。
-  最大字号跟随系统字体设置，空间不足时缩小；长班名允许省略，但完整名称、时段保留在无障碍描述里。
+  日期与说明、信息值、当前时间、班名和倒计时分别设置字号上限；空间充足时放大，紧凑时自动缩小。
+  最大字号跟随系统字体设置；长班名允许省略，但完整名称、时段保留在无障碍描述里。
 - Android 12+ 除上报尺寸外提供减去 20 / 40dp 的内容版本，由宿主按实际大小选择，兼容额外内边距。
   旧系统保留横竖屏版本，Android 5–7 使用保守字号兜底；极端小空间的可读性仍以实机为准。
 - 横条人物窗单独生成并缓存有界小位图，不依赖桌面对轮廓裁剪的实现；完整卡仍直接使用透明人物资源。

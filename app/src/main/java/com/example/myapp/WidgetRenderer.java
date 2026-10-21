@@ -17,11 +17,11 @@ import java.util.Map;
 /** Bounded native groups; the host measures text, clocks remain live RemoteViews. */
 final class WidgetRenderer {
     enum Form {
-        MINIMUM(128, 128, 12, R.layout.widget_handbook_minimum),
+        MINIMUM(128, 128, 12, R.layout.widget_handbook_minimum_v2),
         // Keep the old provider alive, but migrate its instances to the smaller design.
-        COMPACT(184, 184, 14, R.layout.widget_handbook_minimum),
-        WIDE(360, 128, 14, R.layout.widget_handbook_wide),
-        FULL(304, 320, 16, R.layout.widget_handbook_full);
+        COMPACT(184, 184, 14, R.layout.widget_handbook_minimum_v2),
+        WIDE(360, 128, 14, R.layout.widget_handbook_wide_v2),
+        FULL(304, 320, 16, R.layout.widget_handbook_full_v2);
 
         final float width, height, inset;
         final int layout;
@@ -61,9 +61,9 @@ final class WidgetRenderer {
             float radius) {
         Geometry g = new Geometry(form, width, height, radius);
         boolean darkTheme = (context.getResources().getConfiguration().uiMode & 0x30) == 0x20;
-        int layout = darkTheme ? form == Form.WIDE ? R.layout.widget_handbook_wide_night
-                : form == Form.FULL ? R.layout.widget_handbook_full_night
-                : R.layout.widget_handbook_minimum_night : form.layout;
+        int layout = darkTheme ? form == Form.WIDE ? R.layout.widget_handbook_wide_v2_night
+                : form == Form.FULL ? R.layout.widget_handbook_full_v2_night
+                : R.layout.widget_handbook_minimum_v2_night : form.layout;
         // A distinct ID forces theme reinflation, including XML colors and panel drawables.
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
         pad(context, views, R.id.card_content, g.inset);
@@ -133,9 +133,9 @@ final class WidgetRenderer {
         views.setTextViewText(R.id.shift_time, range);
         views.setContentDescription(R.id.shift_name, slot.name + "，" + status + "，" + full);
         views.setContentDescription(R.id.shift_time, full);
-        visible(views, R.id.shift_status, !g.small && !(g.form == Form.WIDE && g.height < 108));
+        visible(views, R.id.shift_status, slot.def.isWork && !g.small && !(g.form == Form.WIDE && g.height < 108));
         visible(views, R.id.shift_time, !g.small);
-        visible(views, R.id.clock_label, !(g.form == Form.WIDE && g.width < 300) && !(g.small && g.width < 130));
+        visible(views, R.id.clock_label, !(g.form == Form.WIDE && g.width < 400) && !(g.small && g.width < 160));
         if (g.small) visible(views, R.id.header_ornament, g.width >= 124);
     }
 
@@ -153,7 +153,7 @@ final class WidgetRenderer {
         views.setTextViewText(R.id.tomorrow_value, def.emoji + " " + name + (g.small ? "" : " · " + range));
         views.setContentDescription(R.id.tomorrow_value, new SimpleDateFormat("M月d日 EEEE", Locale.CHINA)
                 .format(day.getTime()) + "，" + name + "，" + range);
-        visible(views, R.id.tomorrow_row, !g.shortFull && (!g.small || g.height >= 124));
+        visible(views, R.id.tomorrow_row, !g.shortFull && (!g.small || g.height >= 144 && g.width >= 128));
     }
 
     private static void bindWeek(Context context, RemoteViews views, Calendar now, Calendar anchor,

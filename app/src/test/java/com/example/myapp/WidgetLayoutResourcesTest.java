@@ -40,8 +40,8 @@ public class WidgetLayoutResourcesTest {
         assertEquals("168dp",provider.getAttribute("android:minResizeHeight"));
         assertEquals("2",provider.getAttribute("android:targetCellWidth"));
         assertEquals("2",provider.getAttribute("android:targetCellHeight"));
-        assertEquals("@layout/widget_handbook_minimum",provider.getAttribute("android:initialLayout"));
-        assertEquals("@layout/widget_handbook_minimum",provider.getAttribute("android:previewLayout"));
+        assertEquals("@layout/widget_handbook_minimum_v2",provider.getAttribute("android:initialLayout"));
+        assertEquals("@layout/widget_handbook_minimum_v2",provider.getAttribute("android:previewLayout"));
         assertEquals("keyguard",provider.getAttribute("android:widgetCategory"));
         Element modern=parse("xml-v28/my_widget_info.xml").getDocumentElement();
         assertEquals("hide_from_picker",modern.getAttribute("android:widgetFeatures"));

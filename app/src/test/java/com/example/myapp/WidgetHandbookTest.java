@@ -97,8 +97,93 @@ public class WidgetHandbookTest {
                         for (int id : new int[]{R.id.shift_name,R.id.today_date,R.id.live_clock,R.id.countdown_label})
                             if (id != R.id.countdown_label || root.findViewById(id).isShown()) assertText(root,id,false,tag);
                         assertText(root,R.id.countdown_chronometer,true,tag);
+                        for (int id : new int[]{R.id.shift_time, R.id.shift_status, R.id.tomorrow_label,
+                                R.id.tomorrow_value}) if (root.findViewById(id) != null && root.findViewById(id).isShown())
+                            assertText(root, id, false, tag);
+                        if (forms[i] == WidgetRenderer.Form.FULL) for (int id : WidgetRenderer.WEEK_DAYS) {
+                            TextView text = root.findViewById(id);
+                            assertEquals(tag + " weekly date and icon must stay on two lines", 2, text.getLayout().getLineCount());
+                            assertTrue(tag + " cropped weekly text", text.getLayout().getHeight() <= text.getHeight());
+                            for (int line = 0; line < 2; line++) assertTrue(tag + " cropped weekly glyph",
+                                    text.getLayout().getLineWidth(line) <= text.getWidth() + .5f);
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    private void assertReadable(View root, int id, float minimumDp, String tag) {
+        TextView text = root.findViewById(id);
+        float size = text.getTextSize() / text.getResources().getDisplayMetrics().density;
+        assertTrue(tag + " unreadable " + text.getResources().getResourceEntryName(id)
+                + " size=" + size + " box=" + text.getWidth() + "x" + text.getHeight()
+                + " minimum=" + minimumDp, size >= minimumDp);
+    }
+
+    @Test public void normalCardsGiveSupportingTextAReadableSize() {
+        try (ActivityController<Activity> c = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for (boolean dark : new boolean[]{false, true}) {
+                Context ctx = WidgetRenderFixture.context(c.get(), dark, 1);
+                for (WidgetRenderer.Form form : new WidgetRenderer.Form[]{WidgetRenderer.Form.MINIMUM,
+                        WidgetRenderer.Form.WIDE, WidgetRenderer.Form.FULL}) {
+                    View root = render(c.get(), ctx, form, (int) form.width, (int) form.height,
+                            0, 28, "夜班", 8_230_000);
+                    String tag = form + " normal dark=" + dark;
+                    assertReadable(root, R.id.today_date, form == WidgetRenderer.Form.MINIMUM ? 12 : 14, tag);
+                    assertReadable(root, R.id.live_clock, form == WidgetRenderer.Form.MINIMUM ? 12 : 15, tag);
+                    if (form == WidgetRenderer.Form.FULL) {
+                        assertReadable(root, R.id.week_title, 14, tag);
+                        assertReadable(root, R.id.cycle_info, 14, tag);
+                        for (int id : WidgetRenderer.WEEK_DAYS) assertReadable(root, id, 14, tag);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test public void roomyCardsGrowTheirTextInsteadOfKeepingSmallCardCaps() {
+        try (ActivityController<Activity> c = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for (boolean dark : new boolean[]{false, true}) {
+                Context ctx = WidgetRenderFixture.context(c.get(), dark, 1);
+                View root = render(c.get(), ctx, WidgetRenderer.Form.FULL, 420, 420,
+                        0, 28, "夜班", 8_230_000);
+                String tag = "roomy full dark=" + dark;
+                assertInside(root, root, tag);
+                assertReadable(root, R.id.today_date, 18, tag);
+                assertReadable(root, R.id.live_clock, 20, tag);
+                assertReadable(root, R.id.shift_name, 34, tag);
+                assertReadable(root, R.id.countdown_chronometer, 36, tag);
+                for (int id : WidgetRenderer.WEEK_DAYS) assertReadable(root, id, 18, tag);
+                assertText(root, R.id.countdown_chronometer, true, tag);
+            }
+        }
+    }
+
+    @Test public void hostRemeasureGrowsTypographyWithoutAnotherProviderUpdate() {
+        try (ActivityController<Activity> c = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            Context ctx = WidgetRenderFixture.context(c.get(), false, 1);
+            View root = render(c.get(), ctx, WidgetRenderer.Form.FULL, 304, 320,
+                    0, 28, "夜班", 8_230_000);
+            float oldDateSize = ((TextView) root.findViewById(R.id.today_date)).getTextSize();
+            WidgetRenderFixture.measure((View) root.getParent(), 420, 420);
+            assertReadable(root, R.id.today_date, 18, "host expansion");
+            assertReadable(root, R.id.live_clock, 20, "host expansion");
+            assertReadable(root, R.id.countdown_chronometer, 36, "host expansion");
+            assertTrue(((TextView) root.findViewById(R.id.today_date)).getTextSize() > oldDateSize);
+            assertInside(root, root, "host expansion");
+        }
+    }
+
+    @Test public void restCardsDoNotSpendASecondRowRepeatingAllDay() {
+        try (ActivityController<Activity> c = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            for (WidgetRenderer.Form form : new WidgetRenderer.Form[]{WidgetRenderer.Form.WIDE, WidgetRenderer.Form.FULL}) {
+                View root = render(c.get(), c.get(), form, (int) form.width, (int) form.height,
+                        0, 28, "休息", -1);
+                assertEquals(View.GONE, root.findViewById(R.id.shift_status).getVisibility());
+                TextView range = root.findViewById(R.id.shift_time);
+                assertTrue(range.isShown());
+                assertEquals(c.get().getString(R.string.widget_rest_all_day), range.getText().toString());
             }
         }
     }
@@ -180,27 +265,41 @@ public class WidgetHandbookTest {
 
     @Test public void nativePreviewImages() throws Exception {
         try (ActivityController<Activity> c = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            for (boolean dark : new boolean[]{false,true}) {
-                Context ctx=WidgetRenderFixture.context(c.get(),dark,1);
-                for (WidgetRenderer.Form form : new WidgetRenderer.Form[]{WidgetRenderer.Form.MINIMUM,WidgetRenderer.Form.WIDE,WidgetRenderer.Form.FULL}) {
-                    Calendar now=Calendar.getInstance();now.set(2026,Calendar.OCTOBER,20,17,11,55);
-                    now.set(Calendar.MILLISECOND,0);
+            WidgetRenderer.Form[] forms = {WidgetRenderer.Form.MINIMUM, WidgetRenderer.Form.WIDE, WidgetRenderer.Form.FULL};
+            int[][] roomy = {{184, 210}, {550, 210}, {550, 450}};
+            for (boolean dark : new boolean[]{false, true}) {
+                Context ctx = WidgetRenderFixture.context(c.get(), dark, 1);
+                for (int i = 0; i < forms.length; i++) for (boolean large : new boolean[]{false, true}) {
+                    WidgetRenderer.Form form = forms[i];
+                    int width = large ? roomy[i][0] : (int) form.width;
+                    int height = large ? roomy[i][1] : (int) form.height;
+                    Calendar now = Calendar.getInstance();
+                    now.set(2026, Calendar.OCTOBER, 21, 8, 50, 32);
+                    now.set(Calendar.MILLISECOND, 0);
                     android.os.SystemClock.setCurrentTimeMillis(now.getTimeInMillis());
-                    Calendar anchor=MyWidgetProvider.debugMidnight(now);anchor.add(Calendar.DAY_OF_YEAR,-1);
-                    String[] cycle={"白班","夜班","休息","白班","夜班","休息","休息","休息"};
-                    Map<String,MyWidgetProvider.ShiftDef> defs=MyWidgetProvider.debugDefaultDefs();
-                    MyWidgetProvider.ShiftSlot slot=MyWidgetProvider.debugEffectiveSlot(now,anchor,cycle,defs);
-                    MyWidgetProvider.Countdown countdown=MyWidgetProvider.countdownAt(now,slot,anchor,cycle,defs);
-                    RemoteViews views=WidgetRenderer.build(ctx,form,form.width,form.height,now,slot,anchor,cycle,defs,countdown,28);
-                    WidgetTestClock.alignCountdown(views,now,countdown);
-                    FrameLayout host=new FrameLayout(ctx);c.get().setContentView(host);
-                    View root=views.apply(ctx,host);host.addView(root);
-                    WidgetRenderFixture.measure(host,(int)form.width,(int)form.height);
-                    Bitmap image=Bitmap.createBitmap(root.getWidth()*3,root.getHeight()*3,Bitmap.Config.ARGB_8888);
-                    Canvas canvas=new Canvas(image);canvas.scale(3,3);root.draw(canvas);
-                    File file=new File("build/widget-previews/"+(dark ? "night-" : "day-")+form.name().toLowerCase()+".png");
+                    Calendar anchor = MyWidgetProvider.debugMidnight(now);
+                    anchor.add(Calendar.DAY_OF_YEAR, -2);
+                    String[] cycle = {"白班", "夜班", "休息", "白班", "夜班", "休息", "休息", "休息"};
+                    Map<String, MyWidgetProvider.ShiftDef> defs = MyWidgetProvider.debugDefaultDefs();
+                    MyWidgetProvider.ShiftSlot slot = MyWidgetProvider.debugEffectiveSlot(now, anchor, cycle, defs);
+                    MyWidgetProvider.Countdown countdown = MyWidgetProvider.countdownAt(now, slot, anchor, cycle, defs);
+                    RemoteViews views = WidgetRenderer.build(ctx, form, width, height, now, slot, anchor, cycle, defs, countdown, 28);
+                    WidgetTestClock.alignCountdown(views, now, countdown);
+                    FrameLayout host = new FrameLayout(ctx);
+                    c.get().setContentView(host);
+                    View root = views.apply(ctx, host);
+                    host.addView(root);
+                    WidgetRenderFixture.measure(host, width, height);
+                    Bitmap image = Bitmap.createBitmap(root.getWidth() * 3, root.getHeight() * 3, Bitmap.Config.ARGB_8888);
+                    Canvas canvas = new Canvas(image);
+                    canvas.scale(3, 3);
+                    root.draw(canvas);
+                    File file = new File("build/widget-previews/" + (dark ? "night-" : "day-")
+                            + form.name().toLowerCase(java.util.Locale.ROOT) + (large ? "-roomy" : "") + ".png");
                     file.getParentFile().mkdirs();
-                    try(FileOutputStream stream=new FileOutputStream(file)){image.compress(Bitmap.CompressFormat.PNG,100,stream);}
+                    try (FileOutputStream stream = new FileOutputStream(file)) {
+                        image.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    }
                     image.recycle();
                 }
             }

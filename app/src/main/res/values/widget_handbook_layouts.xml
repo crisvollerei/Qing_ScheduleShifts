@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Separate IDs prevent reapplying stale day/night XML drawables to the same tree. -->
+    <!-- Legacy night IDs remain available to previously hosted RemoteViews. -->
     <item type="layout" name="widget_handbook_minimum_night">@layout/widget_handbook_minimum</item>
     <item type="layout" name="widget_handbook_wide_night">@layout/widget_handbook_wide</item>
     <item type="layout" name="widget_handbook_full_night">@layout/widget_handbook_full</item>
+    <!-- A typography revision must reinflate XML styles and weighted row sizes on upgrade. -->
+    <item type="layout" name="widget_handbook_minimum_v2">@layout/widget_handbook_minimum</item>
+    <item type="layout" name="widget_handbook_minimum_v2_night">@layout/widget_handbook_minimum</item>
+    <item type="layout" name="widget_handbook_wide_v2">@layout/widget_handbook_wide</item>
+    <item type="layout" name="widget_handbook_wide_v2_night">@layout/widget_handbook_wide</item>
+    <item type="layout" name="widget_handbook_full_v2">@layout/widget_handbook_full</item>
+    <item type="layout" name="widget_handbook_full_v2_night">@layout/widget_handbook_full</item>
 </resources>

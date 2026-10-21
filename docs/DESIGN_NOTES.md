@@ -128,13 +128,14 @@
 `hide_from_picker` 且维持 `home_screen` 类别，更早版本使用 `keyguard` 类别隐藏主屏选择器入口。
 已存在的紧凑卡使用小方卡构图，原有尺寸和实例 ID 保留。
 
-三个原生布局使用 `widget_handbook_minimum`、`widget_handbook_wide`、`widget_handbook_full` 资源 ID。
+三个原生布局定义在 `widget_handbook_minimum`、`widget_handbook_wide`、`widget_handbook_full` 中，
+通过 `_v2` 及对应夜间别名区分字号与行高版本，让宿主加载当前 XML 样式。
 历史 `fixed` / `proportional` 布局与 `widget_layout_compat.xml` 别名用于覆盖安装兼容；
 布局 ID 的区分让宿主重新创建视图，避免 `RemoteViews.reapply` 将动作应用到不兼容的旧视图树。
 
 ### 有界信息组
 
-- 小卡：日期与小边饰、班次、倒计时面板、当前时间、明日提示。最矮规格隐藏提示与计时标签。
+- 小卡：日期与小边饰、班次、倒计时面板、当前时间；宽至少 128dp、高至少 144dp 时显示明日提示。最矮规格隐藏计时标签。
 - 横条：班次、当前时间与倒计时、立绘肖像窗。小于 320dp 宽或 104dp 高的内容版本隐藏人物；
   更窄时缩短时段到下一个时间节点，完整时段保留在无障碍描述。
 - 完整卡：日期时间；左班次 / 倒计时，右透明 Q 版人物；明日行；周期与七天条。
@@ -153,6 +154,8 @@ API 26+ 在 XML 中声明原生 uniform auto-size，最大字号使用 sp 跟随
 最小字号使用 dp 作为压缩兜底。单行使用 `maxLines=1` 与 `scrollHorizontally=false`，
 不启用横向滚动；倒计时禁止省略，长班名允许省略。
 时间与标签使用独立有界行，由原生文本控件按实际测量宽高调整字号。
+`WidgetHandbookLabel`、`Value`、`Clock`、`Name`、`Timer` 分别设置字号上限，
+七天条沿用信息值层级；大卡与宿主扩展后的视图可使用新增空间，不固定在小卡的实际字号。
 API 21–25 使用保守的尺寸与内容长度估算字号。
 
 API 31+ 在宿主上报尺寸之外提供宽高减去 20 / 40dp 的版本，版本总数不超过 RemoteViews 的 16 个上限。
@@ -181,7 +184,7 @@ Android 5–6 使用静态文字与亮屏时的逐秒兼容调度。班次边界
 ### 测试范围与平台边界
 
 `WidgetHandbookTest` 使用原生 Skia 字体度量和 RemoteViews 序列化，检查内容边界、
-字体缩放、自定义表情与主题绘制。`WidgetHostRefreshTest` 使用框架宿主检查旧布局升级、
+字体缩放、自定义表情与主题绘制，并检查正常尺寸可读字号、宿主重新测量后的文字放大及七天条的完整显示。`WidgetHostRefreshTest` 使用框架宿主检查旧布局升级、
 实际尺寸选择、人物隐藏与恢复以及计时器替换。
 `WidgetCountdownRecoveryTest` 检查逐秒计时、补零、冻结与重新绑定恢复。
 

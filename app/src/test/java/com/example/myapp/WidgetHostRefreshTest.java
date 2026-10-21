@@ -132,6 +132,15 @@ public class WidgetHostRefreshTest {
             previousRoot = host.findViewById(R.id.widget_container);
         }
 
+        int[] previousHandbooks = {R.layout.widget_handbook_minimum, R.layout.widget_handbook_minimum,
+                R.layout.widget_handbook_wide, R.layout.widget_handbook_full};
+        assertNotEquals("Typography upgrades must reinflate XML styles", previousHandbooks[index], form.layout);
+        reflector(FrameworkHost.class, host).updateAppWidget(
+                new RemoteViews(activity.getPackageName(), previousHandbooks[index]));
+        measure(surface, w, h);
+        previousRoot = host.findViewById(R.id.widget_container);
+        assertNotNull(previousRoot);
+
         // Legacy hosts select by orientation; modern hosts also select by measured size.
         int[][] sizes = Build.VERSION.SDK_INT >= 31
                 ? new int[][]{{w,h}, {w+64,h+48}, {wide,h}, {w,tall}, {w,h}}
