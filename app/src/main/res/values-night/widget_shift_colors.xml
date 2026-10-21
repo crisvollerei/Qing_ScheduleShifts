@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Web style hues adjusted for readable text on widget surfaces. -->
+    <color name="widget_shift_day">#95B8D0</color>
+    <color name="widget_shift_night">#BAA6DA</color>
+    <color name="widget_shift_rest">#A0C5A1</color>
+    <color name="widget_shift_noon">#D7B97A</color>
+    <color name="widget_shift_morning">#81C8C1</color>
+    <color name="widget_shift_evening">#DAA0BD</color>
+</resources>

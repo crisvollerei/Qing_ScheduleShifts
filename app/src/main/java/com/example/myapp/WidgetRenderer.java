@@ -72,7 +72,7 @@ final class WidgetRenderer {
         views.setContentDescription(R.id.today_date,
                 new SimpleDateFormat("yyyy年M月d日 EEEE", Locale.CHINA).format(now.getTime()));
         bindShift(context, views, g, slot, now);
-        bindTomorrow(views, g, now, anchor, cycle, defs);
+        bindTomorrow(context, views, g, now, anchor, cycle, defs);
         if (form == Form.WIDE) {
             visible(views, R.id.portrait_position, g.portrait);
             // Only the bounded portrait bitmap is composited, never text or the live timer.
@@ -114,14 +114,16 @@ final class WidgetRenderer {
             MyWidgetProvider.ShiftSlot slot, Calendar now) {
         views.setTextViewText(R.id.shift_name, slot.name);
         views.setTextViewText(R.id.shift_emoji, slot.def.emoji);
-        int symbol = "🌙".equals(slot.def.emoji) ? R.drawable.widget_symbol_night
-                : "☀️".equals(slot.def.emoji) ? R.drawable.widget_symbol_day
-                : "🌿".equals(slot.def.emoji) ? R.drawable.widget_symbol_rest : 0;
-        visible(views, R.id.shift_emoji, symbol == 0);
+        int symbol = WidgetShiftAppearance.symbol(slot.def.emoji);
+        int color = WidgetShiftAppearance.color(context, slot.def.cssClass);
+        views.setTextColor(R.id.shift_name, color);
+        views.setTextColor(R.id.shift_emoji, color);
+        visible(views, R.id.shift_emoji, symbol == 0 && !slot.def.emoji.isEmpty());
         visible(views, R.id.shift_symbol, symbol != 0);
         if (symbol != 0) {
             views.setImageViewResource(R.id.shift_symbol, 0);
             views.setImageViewResource(R.id.shift_symbol, symbol);
+            views.setInt(R.id.shift_symbol, "setColorFilter", color);
         }
         views.setContentDescription(R.id.shift_emoji, slot.name);
         String status = context.getString(!slot.def.isWork ? R.string.widget_compact_status_rest
@@ -139,7 +141,7 @@ final class WidgetRenderer {
         if (g.small) visible(views, R.id.header_ornament, g.width >= 124);
     }
 
-    private static void bindTomorrow(RemoteViews views, Geometry g, Calendar now, Calendar anchor,
+    private static void bindTomorrow(Context context, RemoteViews views, Geometry g, Calendar now, Calendar anchor,
             String[] cycle, Map<String, MyWidgetProvider.ShiftDef> defs) {
         if (g.form == Form.WIDE) return;
         Calendar day = (Calendar) now.clone();
@@ -151,6 +153,7 @@ final class WidgetRenderer {
         views.setTextViewText(R.id.tomorrow_label, g.small ? "明日" : "明日 · "
                 + new SimpleDateFormat("M/d", Locale.CHINA).format(day.getTime()));
         views.setTextViewText(R.id.tomorrow_value, def.emoji + " " + name + (g.small ? "" : " · " + range));
+        views.setTextColor(R.id.tomorrow_value, WidgetShiftAppearance.color(context, def.cssClass));
         views.setContentDescription(R.id.tomorrow_value, new SimpleDateFormat("M月d日 EEEE", Locale.CHINA)
                 .format(day.getTime()) + "，" + name + "，" + range);
         visible(views, R.id.tomorrow_row, !g.shortFull && (!g.small || g.height >= 144 && g.width >= 128));
@@ -169,8 +172,12 @@ final class WidgetRenderer {
             String name = MyWidgetProvider.shiftNameAt(day, anchor, cycle);
             MyWidgetProvider.ShiftDef def = MyWidgetProvider.defOf(name, defs);
             views.setTextViewText(WEEK_DAYS[i], day.get(Calendar.DAY_OF_MONTH) + "\n" + def.emoji);
+            views.setTextColor(WEEK_DAYS[i], WidgetShiftAppearance.color(context, def.cssClass));
+            String range = def.isWork ? def.startTime + "–"
+                    + (MyWidgetProvider.isCrossDay(def) ? "次日 " : "") + def.endTime
+                    : context.getString(R.string.widget_rest_all_day);
             views.setContentDescription(WEEK_DAYS[i], new SimpleDateFormat("M月d日 EEE", Locale.CHINA)
-                    .format(day.getTime()) + " " + name);
+                    .format(day.getTime()) + " " + name + "，" + range);
         }
     }
 

@@ -142,10 +142,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
                     ShiftDef def = defaultDef(name);
                     String css = obj.optString("cssClass", def.cssClass);
                     def.cssClass = css.matches("day|night|rest|noon|morning|evening") ? css : def.cssClass;
-                    String[] styles = {"day", "night", "rest", "noon", "morning", "evening"};
-                    String[] icons = {"☀️", "🌙", "🌿", "🌤️", "🌅", "🌆"};
-                    String icon = "📋";
-                    for (int i = 0; i < styles.length; i++) if (styles[i].equals(def.cssClass)) icon = icons[i];
+                    String icon = WidgetShiftAppearance.presetEmoji(def.cssClass);
                     Object emoji = obj.opt("emoji");
                     def.emoji = emoji instanceof String && ((String) emoji).length() <= 16 ? (String) emoji : icon;
                     Object work = obj.opt("isWork");
@@ -156,6 +153,9 @@ public class MyWidgetProvider extends AppWidgetProvider {
                     if (def.isWork) {
                         if (def.startTime == null) def.startTime = "09:00";
                         if (def.endTime == null) def.endTime = "17:00";
+                    } else {
+                        def.startTime = null;
+                        def.endTime = null;
                     }
                     result.put(name, def);
                 }
