@@ -142,10 +142,82 @@ export function createApp(window) {
       reveal(element,{duration:450,delay:Math.min(index,5)*45,fill:'backwards'});
     });
     resumeLiveUpdates();
+    revealWidgetEntry();
   }
+
+  /**
+   * 「添加小组件」只在 Android 宿主里出现。
+   *
+   * 普通浏览器没有 Android 桥，这个按钮点了也没意义，所以默认隐藏、按需显示。
+   */
+  function revealWidgetEntry() {
+    const entry = document.getElementById('addWidgetLink');
+    if (!entry) return;
+    entry.hidden = !hasPinBridge();
+  }
+
   ui.setLifecycle({pause() { window.clearInterval(liveTimer); liveTimer = null; }, resume() { updateLiveClockAndCountdown(); resumeLiveUpdates(); }});
   ui.onDismiss('settingsModal',settings.closeSettings);
   ui.onDismiss('presetModal',settings.closePresetDialog);
+  ui.onDismiss('widgetModal',closeWidgetPicker);
+  /** 打开「添加小组件」选择页。只在 Android 宿主里可用。 */
+  function addWidget() {
+    if (!hasPinBridge()) return;
+    if (ui.activeDialog === 'widgetModal') return;
+    const checked = document.querySelector('input[name="widgetForm"]:checked')
+      || document.querySelector('input[name="widgetForm"]');
+    if (checked) checked.checked = true;
+    ui.openDialog('widgetModal');
+  }
+
+  function closeWidgetPicker() {
+    ui.closeDialog('widgetModal');
+  }
+
+  /**
+   * 按选中的构图请求添加到桌面。
+   *
+   * 系统接口的返回值不可信：小米、vivo 等桌面即使"支持"也不弹确认框，
+   * 返回值仍可能是 true。所以这里不拿它当结论，而是对比调用前后的
+   * 小组件实例数量，1.6 秒后再判断到底加上了没有。
+   */
+  function confirmAddWidget() {
+    if (!hasPinBridge()) return;
+    const selected = document.querySelector('input[name="widgetForm"]:checked');
+    const form = selected ? selected.value : 'minimum';
+    const bridge = window.Android;
+    const before = countWidgets(bridge);
+    let requested = false;
+    try { requested = bridge.requestPinWidget(form) === true; } catch (ignored) { requested = false; }
+    if (!requested) {
+      // 系统根本不支持：直接给手动路径，不必等复查。
+      ui.toast('当前桌面不支持一键添加，请长按桌面空白处，在小部件列表里找「清蒸排班」');
+      return;
+    }
+    ui.closeDialog('widgetModal');
+    // 给桌面一点时间落地，再复查实例数。多数桌面在 1 秒内完成。
+    window.setTimeout(() => {
+      const added = countWidgets(bridge) > before;
+      ui.toast(added
+        ? '已添加到桌面'
+        : '已发出请求。若桌面没有出现，请长按桌面空白处，在小部件列表里找「清蒸排班」');
+    }, 1600);
+  }
+
+  /** 桌面上已有几个本应用的小组件。桥不存在时返回 0。 */
+  function countWidgets(bridge) {
+    try {
+      const n = bridge && typeof bridge.widgetCount === 'function' ? bridge.widgetCount() : 0;
+      return typeof n === 'number' && n >= 0 ? n : 0;
+    } catch (ignored) { return 0; }
+  }
+
+  /** 原生桥是否存在。普通浏览器里没有这个对象。 */
+  function hasPinBridge() {
+    const bridge = window.Android;
+    return !!bridge && typeof bridge.requestPinWidget === 'function';
+  }
+
   const actions = {
     openYearOverview: views.openYearOverview, openPicker: views.openPicker, closePicker: views.closePicker,
     prevMonth: views.prevMonth, nextMonth: views.nextMonth, closeDetail: views.closeDetail,
@@ -161,7 +233,8 @@ export function createApp(window) {
     resetAvatar: personalization.resetAvatar, resetTitle: personalization.resetTitle,
     exportBackup: dataTools.exportBackup, importBackup: dataTools.importBackup,
     copyBackupText: dataTools.copyBackupText, selectBackupText: dataTools.selectBackupText,
-    previewBackupText: dataTools.previewBackupText, toggleAutomaticTheme
+    previewBackupText: dataTools.previewBackupText, toggleAutomaticTheme,
+    addWidget, closeWidgetPicker, confirmAddWidget
   };
   for (const button of document.querySelectorAll('[data-action]')) {
     button.addEventListener('click',() => actions[button.dataset.action]?.());

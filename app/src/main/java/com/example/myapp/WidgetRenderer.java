@@ -106,7 +106,7 @@ final class WidgetRenderer {
         PendingIntent open = PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         views.setOnClickPendingIntent(R.id.widget_container, open);
-        startTimer(views, countdown, nativeTimer);
+        startTimer(views, countdown, nativeTimer, now);
         return views;
     }
 
@@ -209,17 +209,28 @@ final class WidgetRenderer {
         views.setContentDescription(R.id.countdown_text, detail);
     }
 
-    private static void startTimer(RemoteViews views, MyWidgetProvider.Countdown countdown, boolean nativeTimer) {
+    /**
+     * 启动原生倒计时。
+     *
+     * 时间基准必须用调用方算好的 now，不能在这里重新取一次当前时间：
+     * countdown.target 是某次计算的产物，两者差值才是真实剩余时间。
+     * 若这里重新取，而两次取值之间因为逐个更新多个实例、RemoteViews 序列化
+     * 或位图合成而拖了若干秒，倒计时就会整体偏移同样的秒数——实测有设备偏到 19 秒，
+     * 且在下一次重新绑定前不会自动纠正。
+     */
+    private static void startTimer(RemoteViews views, MyWidgetProvider.Countdown countdown,
+            boolean nativeTimer, Calendar now) {
         if (nativeTimer && Build.VERSION.SDK_INT >= 24) {
-            long wall = System.currentTimeMillis();
+            long wall = now.getTimeInMillis();
             views.setChronometerCountDown(R.id.countdown_chronometer, true);
             views.setChronometer(R.id.countdown_chronometer, SystemClock.elapsedRealtime() + countdown.target - wall,
                     MyWidgetProvider.countdownFormat(wall, countdown.target), true);
         } else {
             if (Build.VERSION.SDK_INT >= 24) views.setChronometerCountDown(R.id.countdown_chronometer, false);
             views.setChronometer(R.id.countdown_chronometer, SystemClock.elapsedRealtime(), null, false);
+            // 静态文本分支同样要用同一个基准，否则旧系统上也会出现相同偏移。
             views.setTextViewText(R.id.countdown_text, countdown.target == 0 ? "—"
-                    : MyWidgetProvider.formatHms(countdown.target - System.currentTimeMillis()));
+                    : MyWidgetProvider.formatHms(countdown.target - now.getTimeInMillis()));
         }
     }
 

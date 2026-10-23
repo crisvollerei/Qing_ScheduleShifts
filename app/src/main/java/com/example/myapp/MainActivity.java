@@ -255,6 +255,58 @@ public class MainActivity extends AppCompatActivity {
             refreshWidgets();
         }
 
+        /**
+         * 请求把某个构图的小组件放到桌面。
+         *
+         * 这个接口只表示"请求已发出"，**不代表用户真的加上了**：
+         *   - isRequestPinAppWidgetSupported() 返回 true 的桌面里，
+         *     小米 / vivo 并不会弹确认框（小米可能静默加到别的页面）；
+         *   - requestPinAppWidget() 的返回值也只表示"系统支持该能力"，
+         *     无论最终是否添加成功都会返回 true。
+         *
+         * 所以页面不能拿它当成功提示，只能当作"已尝试"。真正的兜底是
+         * 选择页上始终展示的手动添加步骤。
+         *
+         * 三种构图是三个独立 provider（不是同一 provider 的不同尺寸），
+         * 因此必须按页面传来的 form 选择对应 provider。
+         *
+         * @param form "minimum" / "wide" / "full"，未知值退回小方卡。
+         * @return true 表示请求已发出；false 表示当前系统或桌面不支持该能力。
+         */
+        @JavascriptInterface
+        public boolean requestPinWidget(String form) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false;
+            AppWidgetManager manager = AppWidgetManager.getInstance(context);
+            if (manager == null || !manager.isRequestPinAppWidgetSupported()) return false;
+            Class<? extends MyWidgetProvider> provider = MyWidgetProvider.Minimum.class;
+            if ("wide".equals(form)) provider = MyWidgetProvider.Wide.class;
+            else if ("full".equals(form)) provider = MyWidgetProvider.Full.class;
+            try {
+                boolean requested = manager.requestPinAppWidget(
+                        new ComponentName(context, provider), null, null);
+                Log.d(TAG, "Pin requested for " + form + ": " + requested);
+                return requested;
+            } catch (RuntimeException unsupportedByLauncher) {
+                Log.w(TAG, "Launcher refused the pin request", unsupportedByLauncher);
+                return false;
+            }
+        }
+
+        /**
+         * 当前桌面上已有多少个本应用的小组件实例。
+         *
+         * 页面在发出请求前后各读一次，用来判断这次请求到底加上了没有——
+         * 返回值不可信时，这是唯一可靠的判据。
+         */
+        @JavascriptInterface
+        public int widgetCount() {
+            try {
+                return MyWidgetProvider.widgetIds(context).length;
+            } catch (RuntimeException ignored) {
+                return 0;
+            }
+        }
+
         /** Settings changes refresh all four widget compositions through their shared provider. */
         private void refreshWidgets() {
             try {

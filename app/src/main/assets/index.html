@@ -253,7 +253,7 @@
       <details class="year-overview panel enter-stage" id="yearOverview"><summary><div class="year-overview-heading"><span class="year-icon" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><div><h2 id="heatmapTitle">年度排班总览</h2><p>把时间看得更远一点</p></div></div><span class="year-overview-action"><span class="expand-label">展开 12 个月</span><span class="collapse-label">收起总览</span><span class="disclosure-chevron" aria-hidden="true">⌄</span></span></summary><div class="year-content"><p class="year-explanation">一年的忙碌与闲暇，浓缩在这里。点击月份或日期，回到月历查看。</p><div class="heatmap-grid" id="heatmapGrid"></div></div></details>
     </main>
 
-    <footer class="footer"><div><span class="footer-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><span class="footer-brand" id="footerBrand">清蒸排班</span><span id="slogan">有序工作，自在生活。</span></div><p id="footerHint">配置仅保存在当前设备</p><div class="footer-tools"><button class="footer-data-link" data-action="openPersonalization" aria-haspopup="dialog">头像与标题 <span aria-hidden="true">↗</span></button><button class="footer-data-link" data-action="openDataTools" aria-haspopup="dialog">备份与恢复 <span aria-hidden="true">↗</span></button></div><p class="calendar-data-note">节日仅作日期参考，不代表法定放假或调休安排。历法资料：<a href="https://www.hko.gov.hk/sc/gts/time/conversion.htm" target="_blank" rel="noopener noreferrer">香港天文台</a>（2025–2030）。</p></footer>
+    <footer class="footer"><div><span class="footer-emblem" aria-hidden="true"><svg class="ornament-day" viewBox="0 0 64 64" focusable="false"><use href="#silver-knot"></use></svg><svg class="ornament-night" viewBox="0 0 100 64" focusable="false"><use href="#night-bow"></use></svg></span><span class="footer-brand" id="footerBrand">清蒸排班</span><span id="slogan">有序工作，自在生活。</span></div><p id="footerHint">配置仅保存在当前设备</p><div class="footer-tools"><button class="footer-data-link" data-action="openPersonalization" aria-haspopup="dialog">头像与标题 <span aria-hidden="true">↗</span></button><button class="footer-data-link" data-action="openDataTools" aria-haspopup="dialog">备份与恢复 <span aria-hidden="true">↗</span></button><button class="footer-data-link" type="button" data-action="addWidget" id="addWidgetLink" hidden>添加小组件 <span aria-hidden="true">↗</span></button></div><p class="calendar-data-note">节日仅作日期参考，不代表法定放假或调休安排。历法资料：<a href="https://www.hko.gov.hk/sc/gts/time/conversion.htm" target="_blank" rel="noopener noreferrer">香港天文台</a>（2025–2030）。</p></footer>
   </div>
 
   <div class="picker-overlay" id="pickerModal" hidden=""><section class="picker-content" role="dialog" aria-modal="true" aria-labelledby="pickerTitle" tabindex="-1"><h2 id="pickerTitle">选择年月</h2><div class="picker-year-row"><button class="icon-btn" id="pickerPrev" data-action="pickerPrevYear" aria-label="上一年">‹</button><strong id="pickerYearLabel"></strong><button class="icon-btn" id="pickerNext" data-action="pickerNextYear" aria-label="下一年">›</button></div><div class="picker-months" id="pickerMonths"></div><button class="button button-secondary picker-close" data-action="closePicker">关闭</button></section></div>
@@ -271,6 +271,28 @@
       <div class="form-group shift-name-field"><label for="shiftName">新班次名称</label><input id="shiftName" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="例如：早班、值班" aria-describedby="shiftNameHint settingsError"><small id="shiftNameHint">填写名称后点击“添加班次”，或按回车；不能包含空格。</small></div>
       <div id="shiftDefsEditor"></div><p class="form-note">下班时间早于或等于上班时间时，自动视为次日下班；也可手动勾选跨日。</p><p class="form-error" id="settingsError" role="alert" hidden></p>
       <div class="btn-group"><button class="button button-secondary" data-action="closeSettings">取消</button><button class="button button-primary" data-action="saveSettings">保存设置</button></div>
+    </section>
+  </div>
+  <div class="modal" id="widgetModal" hidden>
+    <section class="modal-content data-content" role="dialog" aria-modal="true" aria-labelledby="widgetTitle" aria-describedby="widgetDescription" tabindex="-1">
+      <div class="modal-header"><div><p class="eyebrow">把班次放到桌面</p><h2 id="widgetTitle">添加小组件</h2></div><button class="icon-btn" data-action="closeWidgetPicker" aria-label="关闭添加小组件">×</button></div>
+      <p class="form-description" id="widgetDescription">选一种构图，点「添加到桌面」后系统会弹确认框。添加后可随时拖动改变大小。</p>
+      <div class="widget-options" role="radiogroup" aria-labelledby="widgetTitle">
+        <label class="widget-option"><input type="radio" name="widgetForm" value="minimum" checked><span class="widget-option-body"><span class="widget-option-name">小方卡</span><span class="widget-option-size">128 × 128</span><span class="widget-option-desc">日期、班次、倒计时与当前时间。最省空间，适合放在角落。</span><img class="widget-option-preview" src="assets/widget-preview/day-minimum.png?v=ac0f31b36e50" alt="" loading="lazy" width="96"></span></label>
+        <label class="widget-option"><input type="radio" name="widgetForm" value="wide"><span class="widget-option-body"><span class="widget-option-name">三段横条</span><span class="widget-option-size">360 × 128</span><span class="widget-option-desc">左侧班次、中间时钟与倒计时、右侧立绘。横向铺开，信息一眼看完。</span><img class="widget-option-preview widget-option-preview-wide" src="assets/widget-preview/day-wide.png?v=f50f2382840c" alt="" loading="lazy" width="180"></span></label>
+        <label class="widget-option"><input type="radio" name="widgetForm" value="full"><span class="widget-option-body"><span class="widget-option-name">完整方卡</span><span class="widget-option-size">304 × 320</span><span class="widget-option-desc">含立绘、明日安排、未来七天与周期进度。信息最全。</span><img class="widget-option-preview" src="assets/widget-preview/day-full.png?v=eda569030653" alt="" loading="lazy" width="140"></span></label>
+      </div>
+      <p class="form-note">外观跟随系统深浅色模式，深色下自动切换为蓝夜主题。</p>
+      <div class="btn-group"><button class="button button-secondary" data-action="closeWidgetPicker">取消</button><button class="button button-primary" data-action="confirmAddWidget">添加到桌面</button></div>
+      <details class="widget-manual">
+        <summary>桌面上没有出现？手动添加</summary>
+        <ol>
+          <li>回到桌面，长按空白处直到出现菜单。</li>
+          <li>点「小部件 / 小组件 / 卡片」（各厂商叫法不同）。</li>
+          <li>在列表里找到「清蒸排班」，把想要的构图拖到桌面。</li>
+        </ol>
+        <p class="form-note">部分桌面（如小米、vivo）不弹确认框，一键添加可能没有反应，此时按上面步骤手动添加即可。</p>
+      </details>
     </section>
   </div>
   <div class="modal" id="dataModal" hidden>
