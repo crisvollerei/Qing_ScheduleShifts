@@ -126,18 +126,33 @@ final class WidgetRenderer {
             views.setInt(R.id.shift_symbol, "setColorFilter", color);
         }
         views.setContentDescription(R.id.shift_emoji, slot.name);
-        String status = context.getString(!slot.def.isWork ? R.string.widget_compact_status_rest
-                : now.before(slot.start) ? R.string.widget_compact_status_before
-                : now.before(slot.end) ? R.string.widget_compact_status_work : R.string.widget_compact_status_after);
+        // 状态行只在"上班前"和"下班后"出现，用来提示还没到 / 已经过了。
+        //   上班中：下面那行就是「距下班」，正在上班这件事已由它说明，不重复；
+        //   休息日：时段行会写「全天休息」，状态行再说一次也是重复。
+        boolean working = slot.def.isWork && !now.before(slot.start) && now.before(slot.end);
+        String status = !slot.def.isWork || working ? ""
+                : context.getString(now.before(slot.start)
+                        ? R.string.widget_compact_status_before : R.string.widget_compact_status_after);
         String full = workRange(context, now, slot);
-        String range = g.form == Form.WIDE && g.width < 300 ? nextTimeNode(now, slot) : full;
+        String range = g.form == Form.WIDE && g.width < 300 ? nextTimeNode(context, now, slot) : full;
         views.setTextViewText(R.id.shift_status, status);
         views.setTextViewText(R.id.shift_time, range);
-        views.setContentDescription(R.id.shift_name, slot.name + "，" + status + "，" + full);
+        // 状态为空时跳过，避免读屏念出「夜班，，20:00–08:00」这样的双逗号。
+        views.setContentDescription(R.id.shift_name,
+                status.isEmpty() ? slot.name + "，" + full : slot.name + "，" + status + "，" + full);
         views.setContentDescription(R.id.shift_time, full);
-        visible(views, R.id.shift_status, slot.def.isWork && !g.small && !(g.form == Form.WIDE && g.height < 108));
+        visible(views, R.id.shift_status,
+                !status.isEmpty() && !g.small && !(g.form == Form.WIDE && g.height < 108));
         visible(views, R.id.shift_time, !g.small);
-        visible(views, R.id.clock_label, !(g.form == Form.WIDE && g.width < 400) && !(g.small && g.width < 160));
+        // 「现在」这行标签按尺寸决定去留。
+        //
+        // 标签能消除"裸数字是什么"的歧义，但它占 42dp 固定宽度；
+        // 卡片被压到 120dp 以下时，这 42dp 会把时间本身挤到裁切边缘，
+        // 得不偿失。所以：太小就回到裸时间，正常尺寸一律带标签。
+        boolean showNowLabel = g.width >= 120
+                && !(g.form == Form.WIDE && g.width < 400);
+        visible(views, R.id.clock_label, showNowLabel);
+        views.setTextViewText(R.id.clock_label, context.getString(R.string.widget_now_label));
         if (g.small) visible(views, R.id.header_ornament, g.width >= 124);
     }
 
@@ -149,7 +164,7 @@ final class WidgetRenderer {
         String name = MyWidgetProvider.shiftNameAt(day, anchor, cycle);
         MyWidgetProvider.ShiftDef def = MyWidgetProvider.defOf(name, defs);
         String range = def.isWork ? def.startTime + "–" + (MyWidgetProvider.isCrossDay(def) ? "次日 " : "")
-                + def.endTime : "全天放松";
+                + def.endTime : context.getString(R.string.widget_rest_all_day);
         views.setTextViewText(R.id.tomorrow_label, g.small ? "明日" : "明日 · "
                 + new SimpleDateFormat("M/d", Locale.CHINA).format(day.getTime()));
         views.setTextViewText(R.id.tomorrow_value, def.emoji + " " + name + (g.small ? "" : " · " + range));
@@ -239,10 +254,17 @@ final class WidgetRenderer {
         }
     }
 
-    private static String nextTimeNode(Calendar now, MyWidgetProvider.ShiftSlot slot) {
-        if (!slot.def.isWork) return "全天休息";
+    /**
+     * 窄尺寸下的时段简写。
+     *
+     * 只写"下一次变化发生在几点"。上班前用「→ 20:00」表示还没到点；上班中用
+     * 「至 08:00」表示这个班到几点结束——后者带个"至"字才有落点，单写时间会像
+     * 另一个待办。已下班则直接说明状态。
+     */
+    private static String nextTimeNode(Context context, Calendar now, MyWidgetProvider.ShiftSlot slot) {
+        if (!slot.def.isWork) return context.getString(R.string.widget_rest_all_day);
         if (now.before(slot.start)) return "→ " + slot.def.startTime;
-        if (now.before(slot.end)) return "→ " + slot.def.endTime;
+        if (now.before(slot.end)) return "至 " + slot.def.endTime;
         return "已下班";
     }
 

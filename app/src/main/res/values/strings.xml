@@ -4,23 +4,16 @@
     <string name="widget_form_compact">紧凑方卡</string>
     <string name="widget_form_wide">横条</string>
     <string name="widget_form_full">完整方卡</string>
-    <string name="widget_shift_title">今日班次</string>
-    <string name="widget_yesterday_shift">昨日班次 · 延续中</string>
     <string name="widget_rest_all_day">全天休息</string>
     <string name="widget_no_upcoming">暂无后续工作班次</string>
     <string name="widget_countdown_to_work">距离上班</string>
     <string name="widget_countdown_to_off">距离下班</string>
     <string name="widget_cycle_position">周期第 %1$d / %2$d 天</string>
-    <string name="widget_status_rest">好好休息</string>
-    <string name="widget_status_before">尚未上班</string>
-    <string name="widget_status_work">正在上班</string>
-    <string name="widget_status_after">今日已下班</string>
-    <string name="widget_now">此刻</string>
-    <string name="widget_compact_now">现在</string>
-    <string name="widget_compact_status_work">班中</string>
     <string name="widget_compact_status_before">待上班</string>
-    <string name="widget_compact_status_after">已结束</string>
-    <string name="widget_compact_status_rest">全天</string>
+    <string name="widget_compact_status_after">已下班</string>
+    <string name="widget_compact_status_rest">休息</string>
+    <!-- 没有后续工作班次时，倒计时那一行的标签。 -->
+    <string name="widget_status_rest">好好休息</string>
     <string name="widget_refresh">刷新班次信息</string>
     <string name="widget_refreshed">小组件已刷新</string>
     <string name="widget_description">实时班次、周期进度、后续排班与上下班倒计时；随尺寸和系统深浅色自动适配。</string>
@@ -32,6 +25,8 @@
     <string name="widget_cycle_compact">周期 %1$d/%2$d</string>
     <string name="widget_countdown_work_compact">距上班</string>
     <string name="widget_countdown_off_compact">距下班</string>
+    <!-- 「现在」时间前面的标签。不写标签时那行数字容易被误读。 -->
+    <string name="widget_now_label">现在</string>
 
     <string name="widget_companion_day">今天也陪着你</string>
     <string name="widget_companion_night">夜航也有陪伴</string>
