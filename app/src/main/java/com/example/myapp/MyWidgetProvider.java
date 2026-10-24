@@ -213,7 +213,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
                     .matcher(name).find();
     }
 
-    private static Calendar readAnchor(Context context) {
+    static Calendar readAnchor(Context context) {
         Calendar anchor = parseAnchor(prefs(context).getString("anchorDate", ""));
         if (anchor != null) return anchor;
         anchor = midnight(Calendar.getInstance());
@@ -285,7 +285,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
     }
 
     /** 构造某一天的班次起止时刻；跨日班次的结束时刻落在次日。 */
-    private static ShiftSlot slotOf(Calendar day, String name, ShiftDef def) {
+    static ShiftSlot slotOf(Calendar day, String name, ShiftDef def) {
         ShiftSlot slot = new ShiftSlot();
         slot.name = name;
         slot.def = def;
@@ -332,7 +332,7 @@ public class MyWidgetProvider extends AppWidgetProvider {
     }
 
     /** 下一个尚未开始的工作班次；正在进行的班次由 countdownAt 单独处理。 */
-    private static ShiftSlot nextWorkSlot(Calendar from, Calendar anchor, String[] cycle,
+    static ShiftSlot nextWorkSlot(Calendar from, Calendar anchor, String[] cycle,
                                           Map<String, ShiftDef> defs) {
         Calendar cursor = midnight(from);
         long fromMillis = from.getTimeInMillis();

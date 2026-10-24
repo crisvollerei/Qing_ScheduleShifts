@@ -33,7 +33,8 @@ import org.json.JSONObject;
  * 页面本身包含完整的品牌区、日历、统计与设置界面，原生层只负责：
  * 1. 以 https 虚拟域（WebViewAssetLoader）加载本地页面，无需网络权限；
  * 2. 把排班设置同步给桌面小部件（SharedPreferences "WidgetSettings"）；
- * 3. 处理返回键（先关弹窗，再考虑页面后退）与外链跳转。
+ * 3. 处理返回键（先关弹窗，再考虑页面后退）与外链跳转；
+ * 4. 提供独立上班闹钟、系统时钟和日历操作桥。
  *
  * 之所以不再用 file:///android_asset/：网页内核自 v2 起以 ES module 启动，
  * file:// 的 origin 为 null，module 请求会按跨源处理而被拦截，页面无法初始化。
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private WebViewAssetLoader assetLoader;
+    private ReminderBridge reminders;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -76,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
                 .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
 
+        reminders = new ReminderBridge(this, webView);
         webView.addJavascriptInterface(new SettingsInterface(this), "Android");
         webView.setWebViewClient(new LocalAssetClient(assetLoader));
         // Context#getColor 需要 API 23，项目 minSdk 为 21，改用兼容方法。
@@ -128,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (reminders != null) reminders.refresh();
         MyWidgetProvider.refreshAll(this);
         if (Build.VERSION.SDK_INT >= 31 && WidgetRefresh.hasWidgets(this)
                 && !WidgetRefresh.canScheduleExact(this)) {
@@ -152,12 +156,34 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (reminders != null) reminders.destroy();
         if (webView != null) {
             webView.removeJavascriptInterface("Android");
             webView.destroy();
             webView = null;
         }
         super.onDestroy();
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent.getBooleanExtra("openReminders", false) && webView != null)
+            webView.evaluateJavascript("window.QingZhengReminders?.open()", null);
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grants) {
+        super.onRequestPermissionsResult(requestCode, permissions, grants);
+        if (reminders != null) reminders.refresh();
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == ReminderBridge.RINGTONE_REQUEST && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+            if (uri != null) WorkReminders.prefs(this).edit().putString("ringtone", uri.toString()).apply();
+            if (reminders != null) reminders.refresh();
+        }
     }
 
     /**
@@ -180,12 +206,15 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPageFinished(WebView view, String url) {
             if (!HOME_URL.equals(url)) return;
+            if (reminders != null) reminders.pageReady();
             // 页面改为模块化后不再暴露全局 CYCLE/SHIFT_DEFS，
             // 改为通过注入的读取入口取当前配置，首次进入时对齐小部件数据。
             view.evaluateJavascript(
                     "(function(){try{"
                             + "if(window.QingZhengAppBridge&&typeof window.QingZhengAppBridge.syncNow==='function'){"
-                            + "window.QingZhengAppBridge.syncNow();return 'ok';}"
+                            + "window.QingZhengAppBridge.syncNow();"
+                            + (getIntent().getBooleanExtra("openReminders", false) ? "window.QingZhengReminders?.open();" : "")
+                            + "return 'ok';}"
                             + "return 'pending';}catch(e){return 'error';}})()", null);
         }
 
@@ -252,7 +281,13 @@ public class MainActivity extends AppCompatActivity {
             // apply 异步落盘（lint 建议），但内存值立即生效；
             // 小部件在主线程之后读取到的已是新值，无需同步阻塞主线程。
             editor.apply();
+            if (reminders != null) reminders.changed();
             refreshWidgets();
+        }
+
+        @JavascriptInterface
+        public void reminderRequest(String id, String action, String payload) {
+            if (reminders != null) reminders.request(id, action, payload);
         }
 
         /**

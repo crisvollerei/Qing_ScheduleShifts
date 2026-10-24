@@ -70,8 +70,8 @@ schedule { manifestPlaceholders = [appLabel: "排班"] }
 `app/build.gradle` 顶部集中维护：
 
 ```groovy
-def appVersionCode = 29
-def appVersionName = "0.3.2"
+def appVersionCode = 34
+def appVersionName = "0.3.4"
 ```
 
 > ⚠️ `versionCode` 必须**严格递增**，否则覆盖安装会被系统拒绝

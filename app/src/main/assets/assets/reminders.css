@@ -1,0 +1,49 @@
+/* Android extension: shares the web app's palette and static input-page behavior. */
+.reminder-launch { position: fixed; z-index: 30; left: max(18px, env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom)); min-height: 48px; padding: 11px 17px; border-color: var(--today-border); border-radius: 16px; color: var(--text); box-shadow: 0 5px 22px #24243818; }
+.reminder-content { max-width: 760px; }
+.reminder-card { padding: 24px; margin-top: 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); }
+.reminder-owned { border-color: var(--today-border); }
+.reminder-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.reminder-heading h3 { margin-top: 4px; font-size: 20px; font-family: "STKaiti", "KaiTi", "Songti SC", serif; }
+.reminder-badge { padding: 5px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--text); font-size: 12px; flex-shrink: 0; }
+.reminder-toggle { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0 24px; cursor: pointer; }
+.reminder-toggle strong { font-size: 15px; }
+.reminder-toggle small { display: block; margin-top: 5px; color: var(--text-muted); font-size: 12px; }
+.reminder-toggle input { position: absolute; right: 0; width: 48px; height: 44px; opacity: 0; cursor: pointer; }
+.reminder-switch { flex-shrink: 0; width: 46px; height: 28px; border-radius: 20px; background: var(--border); padding: 4px; pointer-events: none; }
+.reminder-switch::after { content: ''; display: block; width: 20px; height: 20px; border-radius: 50%; background: var(--bg-card); }
+.reminder-toggle input:checked + .reminder-switch { background: var(--accent-strong); }
+.reminder-toggle input:checked + .reminder-switch::after { margin-left: 18px; background: #fff; }
+.reminder-toggle input:focus-visible + .reminder-switch { outline: 3px solid var(--accent); outline-offset: 4px; }
+.reminder-lead-row, .reminder-sound, .reminder-actions, .reminder-presets { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.reminder-lead-row input { max-width: 150px; }
+.reminder-lead-row > span { color: var(--text-muted); font-size: 14px; }
+.reminder-presets { margin-top: 10px; gap: 7px; }
+.reminder-sound { margin-bottom: 20px; gap: 20px; }
+.reminder-sound label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 14px; }
+.reminder-sound input { width: 19px; height: 19px; accent-color: var(--accent-strong); }
+.reminder-next { display: grid; gap: 7px; padding: 18px; margin: 16px 0; border-radius: 12px; background: var(--bg-cell); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.reminder-next strong { font-size: 23px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.reminder-next > span:last-child { color: var(--text-muted); font-size: 13px; }
+.reminder-permissions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.reminder-help { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 15px; }
+.reminder-help summary { cursor: pointer; font-size: 13px; color: var(--text-muted); min-height: 36px; }
+.reminder-help p { margin: 8px 0 12px; font-size: 13px; color: var(--text-muted); }
+.reminder-caution { padding: 12px 14px; margin-bottom: 18px; border-left: 3px solid var(--today-border); background: var(--bg-cell); font-size: 13px; color: var(--text-muted); }
+.reminder-card select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-cell); color: var(--text); font: inherit; font-size: 14px; }
+.reminder-range { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.reminder-export { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 18px; font-size: 13px; }
+.reminder-export ol { padding-left: 22px; margin-top: 12px; max-height: 240px; overflow: auto; }
+.reminder-export li { padding: 5px 0; overflow-wrap: anywhere; }
+.reminder-cleanup { margin-top: 22px; display: grid; justify-items: start; gap: 8px; }
+.reminder-content .button { white-space: normal; text-align: center; min-height: 44px; }
+.reminder-content > .form-error { margin-bottom: 16px; }
+@media (max-width: 640px) {
+  .reminder-card { padding: 18px 15px; margin-top: 16px; }
+  .reminder-heading h3 { font-size: 19px; }
+  .reminder-heading { align-items: flex-start; }
+  .reminder-badge { max-width: 130px; white-space: normal; }
+  .reminder-range { grid-template-columns: 1fr; gap: 0; }
+  .reminder-next strong { font-size: 21px; }
+  .reminder-content .modal-header h2 { font-size: 24px; }
+}
